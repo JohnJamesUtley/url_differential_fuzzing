@@ -28,6 +28,14 @@ OUTPUT_DIFFERENTIALS_MATTER: bool = True
 # (Setting this to false also massages the output so percent-encoding differentials aren't visible)
 PERCENT_ENCODING_MATTER: bool = False
 
+EIGHTY_TO_NIL: bool = False
+
+REMOVE_BACKSLASHES: bool = True
+
+SIMPLIFY_ESCAPE_CODES: bool = True
+
+ENFORCE_LOWERCASE: bool = True
+
 # when this is True, a differential is registered if two targets exit with different status codes.
 # When it's False, a differential is registered only when one target exits with status 0 and another
 # exits with nonzero status.
@@ -51,13 +59,13 @@ class TargetConfig(NamedTuple):
 
 # Configuration for each fuzzing target
 TARGET_CONFIGS: List[TargetConfig] = [
-    TargetConfig(
-        executable=PosixPath("./targets/urllib_target.py"),
-        cli_args=[],
-        needs_qemu=False,
-        needs_python_afl=True,
-        env=dict(os.environ),
-    ),
+    # TargetConfig(
+    #     executable=PosixPath("./targets/urllib_target.py"),
+    #     cli_args=[],
+    #     needs_qemu=False,
+    #     needs_python_afl=True,
+    #     env=dict(os.environ),
+    # ),
     # TargetConfig(
     #    executable=PosixPath("./targets/urllib3_target.py"),
     #    cli_args=[],
@@ -79,13 +87,13 @@ TARGET_CONFIGS: List[TargetConfig] = [
         needs_python_afl=True,
         env=dict(os.environ),
     ),
-    # TargetConfig(
-    #    executable=PosixPath("./targets/rfc3986_target.py"),
-    #    cli_args=[],
-    #    needs_qemu=False,
-    #    needs_python_afl=True,
-    #    env=dict(os.environ),
-    # ),
+    TargetConfig(
+       executable=PosixPath("./targets/rfc3986_target.py"),
+       cli_args=[],
+       needs_qemu=False,
+       needs_python_afl=True,
+       env=dict(os.environ),
+    ),
     # TargetConfig(
     #    executable=PosixPath("./targets/hyperlink_target.py"),
     #    cli_args=[],

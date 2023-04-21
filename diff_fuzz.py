@@ -245,26 +245,25 @@ def main() -> None:
                     # If we get one program to fail while another succeeds, then we're doing good.
                     if fingerprint not in explored:
                         explored.add(fingerprint)
-                        setOfStdouts = set(stdouts)
-                        stdoutsEnumerator = enumerate(stdouts)
-
-                        # Eliminate Differences due to Percent-Encoding if it does not matter
-                        if PERCENT_ENCODING_MATTER == False:
-                            normalizedStdouts: List[bytes] = []
-                            # Normalize Percent-Encoding for each stdout
-                            for i, s in enumerate(stdouts):
-                                stdoutString = f"{s!r}"
-                                normalizedStdout = urllib.parse.unquote(stdoutString)
-                                normalizedStdouts.append(bytes(normalizedStdout, 'utf8'))
-                                # print(
-                                #     color(
-                                #         Color.blue,
-                                #         normalizedStdout
-                                #     )
-                                # )
-                            # Replace stdout set with a set of normalized stdouts
-                            setOfStdouts = set(normalizedStdouts)
-                            stdoutsEnumerator = enumerate(normalizedStdouts)
+                        # Eliminate Normalization Differences
+                        normalizedStdouts: List[bytes] = []
+                        # Normalize Percent-Encoding for each stdout
+                        for i, s in enumerate(stdouts):
+                            normalizedStdout = f"{s!r}"
+                            if PERCENT_ENCODING_MATTER == False:
+                                normalizedStdout = urllib.parse.unquote(normalizedStdout)
+                            if EIGHTY_TO_NIL == True:
+                                normalizedStdout = normalizedStdout.replace("80","(nil)")
+                            if SIMPLIFY_ESCAPE_CODES == True:
+                                normalizedStdout = normalizedStdout.encode("unicode_escape").decode("ascii", "ignore")
+                            if REMOVE_BACKSLASHES == True:
+                                normalizedStdout = normalizedStdout.replace("\\", "")
+                            if ENFORCE_LOWERCASE == True:
+                                normalizedStdout = normalizedStdout.lower()
+                            normalizedStdouts.append(bytes(normalizedStdout, 'utf8'))
+                        # Replace stdout set with a set of normalized stdouts
+                        setOfStdouts = set(normalizedStdouts)
+                        stdoutsEnumerator = enumerate(normalizedStdouts)
 
                         if len(set(statuses)) != 1:
                             print(
