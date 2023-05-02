@@ -32,6 +32,11 @@ EXIT_STATUSES_MATTER: bool = False
 # Roughly how many processes to allow in a generation (within a factor of 2)
 ROUGH_DESIRED_QUEUE_LEN: int = 1000
 
+# When this is true the set of fundamentals will include minimum urls which are not valid under RFC
+# Useful for generating distinct bugprints when parsers accept urls which do not have all the required components
+# Instead of classifying these URLs as "" they will match them with errouneous classes like "SOP"
+GENERATE_INVALID_FUNDAMENTALS: bool = True
+
 # AFL++ and AFL differ a little about what goes on stdout and what goes on stderr.
 # Set this flag if you're using AFL++ so that can be handled correctly.
 USES_AFLPLUSPLUS: bool = True
@@ -68,20 +73,20 @@ TARGET_CONFIGS: List[TargetConfig] = [
     #    needs_python_afl=True,
     #    env=dict(os.environ),
     # ),
-    TargetConfig(
-        executable=PosixPath("./targets/yarl_target.py"),
-        cli_args=[],
-        needs_qemu=False,
-        needs_python_afl=True,
-        env=dict(os.environ),
-    ),
     # TargetConfig(
-    #    executable=PosixPath("./targets/rfc3986_target.py"),
-    #    cli_args=[],
-    #    needs_qemu=False,
-    #    needs_python_afl=True,
-    #    env=dict(os.environ),
+    #     executable=PosixPath("./targets/yarl_target.py"),
+    #     cli_args=[],
+    #     needs_qemu=False,
+    #     needs_python_afl=True,
+    #     env=dict(os.environ),
     # ),
+    TargetConfig(
+       executable=PosixPath("./targets/rfc3986_target.py"),
+       cli_args=[],
+       needs_qemu=False,
+       needs_python_afl=True,
+       env=dict(os.environ),
+    ),
     # TargetConfig(
     #    executable=PosixPath("./targets/hyperlink_target.py"),
     #    cli_args=[],

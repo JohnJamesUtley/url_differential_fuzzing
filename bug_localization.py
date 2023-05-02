@@ -56,9 +56,9 @@ def _classify_by_mins(target_min_traces: dict[PosixPath, dict[str, frozenset[int
             if frozenset.issubset(target_min_traces[target_posix][min_trace_id], trace):
                 if set.issubset(set(min_classification), set(min_trace_id)):
                     min_classification = min_trace_id
-                elif not set.issubset(set(min_trace_id), set(min_classification)):
-                    print("Trace fits into disconnected traces! This is bad.")
                 # Check Ordering
+                # elif not set.issubset(set(min_trace_id), set(min_classification)):
+                #     print("Trace fits into disconnected traces! This is bad.")
         classifications.append(min_classification)
     return tuple(classifications)
 
