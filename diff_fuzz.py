@@ -122,6 +122,7 @@ def main() -> None:
     generation: int = 0
     exit_status_differentials: List[PosixPath] = []
     output_differentials: List[PosixPath] = []
+    bugprint_counts: dict[str, int] = {}
     try:
         with multiprocessing.Pool(processes=multiprocessing.cpu_count() // (len(TARGET_CONFIGS) * 2)) as pool:
             while len(input_queue) != 0:  # While there are still inputs to check,
@@ -149,7 +150,7 @@ def main() -> None:
                         if len(set(statuses)) != 1 or len(set(stdouts)) != 1:
                             bugprint = get_bugprint(traces, fundamental_traces)
                             if generation > 0:
-                                record_bugprint(current_input, bugprint)
+                                record_bugprint(current_input, bugprint, bugprint_counts)
                             print(
                                 color(
                                     Color.green,
@@ -228,6 +229,10 @@ def main() -> None:
         if output_differentials != []:
             print(f"Output differentials:")
             print("\n".join(str(f.resolve()) for f in output_differentials))
+
+    print(f"Bugs:")
+    print("\n".join(str(f) for f in sorted(bugprint_counts.items(), key=lambda x:x[1], reverse=True)))
+
 
 
 # For pretty printing

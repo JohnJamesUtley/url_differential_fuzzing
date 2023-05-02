@@ -2,6 +2,7 @@ inputs
 traces
 min
 bugs
+bugsexamination*
 **/__pycache__
 url_fuzz_env/*
 .hypothesis/*

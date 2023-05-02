@@ -83,7 +83,11 @@ def clear_bugprint_records():
             os.remove(f"{path_bugprint_dir}/{input_file}")
         os.rmdir(path_bugprint_dir)
 
-def record_bugprint(input_file: PosixPath, bugprint: bugprint_t):
+def record_bugprint(input_file: PosixPath, bugprint: bugprint_t, bugprint_counter: dict[str, int]):
+    if bugprint in bugprint_counter.keys():
+        bugprint_counter[bugprint] = bugprint_counter[bugprint] + 1
+    else:
+        bugprint_counter[bugprint] = 1
     dir_name = f"bugs/{bugprint}"
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
