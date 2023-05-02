@@ -18,7 +18,7 @@ from pathlib import PosixPath
 from enum import Enum
 from typing import List, Dict, Set, FrozenSet, Tuple, Callable, Optional
 from execution import run_executables
-from bug_localization import get_fundamental_traces, get_bugprint, bugprint_t
+from bug_localization import get_fundamental_traces, get_bugprint, bugprint_t, record_bugprint, clear_bugprint_records
 try:
     from tqdm import tqdm
 except ModuleNotFoundError:
@@ -107,6 +107,8 @@ def main() -> None:
 
     fundamental_traces = get_fundamental_traces()
 
+    clear_bugprint_records()
+
     input_queue: List[PosixPath] = SEED_INPUTS.copy()
 
     # One input `I` produces one trace per program being fuzzed.
@@ -146,6 +148,8 @@ def main() -> None:
                         explored.add(fingerprint)
                         if len(set(statuses)) != 1 or len(set(stdouts)) != 1:
                             bugprint = get_bugprint(traces, fundamental_traces)
+                            if generation > 0:
+                                record_bugprint(current_input, bugprint)
                             print(
                                 color(
                                     Color.green,

@@ -1,6 +1,7 @@
 import sys
 import subprocess
 import multiprocessing
+import shutil
 import random
 import functools
 import itertools
@@ -56,7 +57,7 @@ def _classify_by_mins(target_min_traces: dict[PosixPath, dict[str, frozenset[int
                 if set.issubset(set(min_classification), set(min_trace_id)):
                     min_classification = min_trace_id
                 elif not set.issubset(set(min_trace_id), set(min_classification)):
-                    print("Oh no")
+                    print("Trace fits into disconnected traces! This is bad.")
                 # Check Ordering
         classifications.append(min_classification)
     return tuple(classifications)
@@ -74,6 +75,19 @@ def _get_differences_with_bases(classifications: tuple[str, ...],
                 current_trace_differences.append(hash(target_min_traces[trace_target_posix][classification] - trace))
         all_trace_differences.append(tuple(current_trace_differences))
     return tuple(all_trace_differences)
+
+def clear_bugprint_records():
+    for bugprint_dir in os.listdir("bugs"):
+        path_bugprint_dir = f"bugs/{bugprint_dir}"
+        for input_file in os.listdir(path_bugprint_dir):
+            os.remove(f"{path_bugprint_dir}/{input_file}")
+        os.rmdir(path_bugprint_dir)
+
+def record_bugprint(input_file: PosixPath, bugprint: bugprint_t):
+    dir_name = f"bugs/{bugprint}"
+    if not os.path.isdir(dir_name):
+        os.makedirs(dir_name)
+    shutil.copy2(input_file, f"{dir_name}/")
 
 def get_bugprint(traces: tuple[frozenset], target_min_traces: dict[PosixPath, dict[str, frozenset[int]]]) -> bugprint_t:
     classifications = _classify_by_mins(target_min_traces, traces)
