@@ -17,6 +17,8 @@ import re
 from pathlib import PosixPath
 from enum import Enum
 from typing import List, Dict, Set, FrozenSet, Tuple, Callable, Optional
+from execution import run_executables
+from bug_localization import get_fundamental_traces, get_bugprint, bugprint_t
 try:
     from tqdm import tqdm
 except ModuleNotFoundError:
@@ -98,116 +100,12 @@ def mutate_input(input_filename: PosixPath) -> PosixPath:
 
     return mutant_filename
 
-
-def parse_trace_file(trace_file: io.TextIOWrapper) -> Dict[int, int]:
-    result: Dict[int, int] = {}
-    for line in trace_file.readlines():
-        edge, count = map(int, line.strip().split(":"))
-        result[edge] = count
-    return result
-
-
-def get_trace_length(trace_file: io.TextIOWrapper) -> int:
-    return sum(c for e, c in parse_trace_file(trace_file).items())
-
-
-def get_trace_edge_set(trace_file: io.TextIOWrapper) -> FrozenSet[int]:
-    return frozenset(e for e, c in parse_trace_file(trace_file).items())
-
-
-def get_trace_filename(executable: PosixPath, input_file: PosixPath) -> PosixPath:
-    return TRACE_DIR.joinpath(PosixPath(f"{input_file.name}.{executable.name}.trace"))
-
-
-def make_command_line(target_config: TargetConfig, current_input: PosixPath) -> List[str]:
-    command_line: List[str] = []
-    if target_config.needs_python_afl:
-        command_line.append("py-afl-showmap")
-    else:
-        command_line.append("afl-showmap")
-    if target_config.needs_qemu:  # Enable QEMU mode, if necessary
-        command_line.append("-Q")
-    command_line.append("-e")  # Only care about edge coverage; ignore hit counts
-    command_line += [
-        "-o",
-        str(get_trace_filename(target_config.executable, current_input).resolve()),
-    ]
-    command_line += ["-t", str(TIMEOUT_TIME)]
-    command_line.append("--")
-    if target_config.needs_python_afl:
-        command_line.append("python3")
-    command_line.append(str(target_config.executable.resolve()))
-    command_line += target_config.cli_args
-
-    return command_line
-
-
-AFLPLUSPLUS_SHOWMAP_STDOUT_FOOTER: bytes = b"\x1b[0;36mafl-showmap"
-
-
-def normalize_showmap_output(proc: subprocess.Popen, target_config: TargetConfig) -> bytes:
-    if proc.stdout is None:
-        return b""
-    stdout_bytes = proc.stdout.read()
-    if USES_AFLPLUSPLUS:
-        return stdout_bytes[: stdout_bytes.index(AFLPLUSPLUS_SHOWMAP_STDOUT_FOOTER)]
-    else:
-        return stdout_bytes
-
-
-def run_executables(
-    current_input: PosixPath,
-) -> Tuple[fingerprint_t, Tuple[int, ...], Tuple[bytes, ...]]:
-    traced_procs: List[subprocess.Popen] = []
-
-    # We need these to extract exit statuses
-    untraced_procs: List[subprocess.Popen] = []
-
-    for target_config in TARGET_CONFIGS:
-        command_line: List[str] = make_command_line(target_config, current_input)
-        with open(current_input) as input_file:
-            traced_procs.append(
-                subprocess.Popen(
-                    command_line,
-                    stdin=input_file,
-                    stdout=subprocess.PIPE if OUTPUT_DIFFERENTIALS_MATTER else subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    env=target_config.env,
-                )
-            )
-        with open(current_input) as input_file:
-            untraced_procs.append(
-                subprocess.Popen(
-                    command_line[command_line.index("--") + 1 :],
-                    stdin=input_file,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    env=target_config.env,
-                )
-            )
-
-    for proc in itertools.chain(traced_procs, untraced_procs):
-        proc.wait()
-
-    stdouts: List[bytes] = []
-    for proc, target_config in zip(traced_procs, TARGET_CONFIGS):
-        stdouts.append(normalize_showmap_output(proc, target_config))
-
-    l = []
-    for c in TARGET_CONFIGS:
-        with open(get_trace_filename(c.executable, current_input)) as trace_file:
-            l.append(get_trace_edge_set(trace_file))
-
-    fingerprint = hash(tuple(l))
-
-    statuses: Tuple[int, ...] = tuple(proc.returncode for proc in untraced_procs) if EXIT_STATUSES_MATTER else tuple(proc.returncode != 0 for proc in untraced_procs)
-    return fingerprint, statuses, tuple(stdouts)
-
-
 def main() -> None:
     if len(sys.argv) > 2:
         print(f"Usage: python3 {sys.argv[0]}", file=sys.stderr)
         sys.exit(1)
+
+    fundamental_traces = get_fundamental_traces()
 
     input_queue: List[PosixPath] = SEED_INPUTS.copy()
 
@@ -232,48 +130,58 @@ def main() -> None:
                     )
                 )
                 # run the programs on the things in the input queue.
-                fingerprints_and_statuses_and_stdouts = tqdm(pool.imap(run_executables, input_queue), desc="Running targets", total=len(input_queue))
+                traces_and_statuses_and_stdouts = tqdm(pool.imap(run_executables, input_queue), desc="Running targets", total=len(input_queue))
 
                 mutation_candidates: List[PosixPath] = []
                 rejected_candidates: List[PosixPath] = []
 
-                for current_input, (fingerprint, statuses, stdouts) in zip(
-                    input_queue, fingerprints_and_statuses_and_stdouts
+                for current_input, (traces, statuses, stdouts) in zip(
+                    input_queue, traces_and_statuses_and_stdouts
                 ):
+                    
+                    fingerprint = hash(traces)
                     # If we found something new, mutate it and add its children to the input queue
                     # If we get one program to fail while another succeeds, then we're doing good.
                     if fingerprint not in explored:
                         explored.add(fingerprint)
-                        if len(set(statuses)) != 1:
+                        if len(set(statuses)) != 1 or len(set(stdouts)) != 1:
+                            bugprint = get_bugprint(traces, fundamental_traces)
                             print(
                                 color(
-                                    Color.blue,
-                                    f"Exit Status Differential: {str(current_input.resolve())}",
+                                    Color.green,
+                                    f"Bug: {bugprint}",
                                 )
                             )
-                            for i, status in enumerate(statuses):
+                            if len(set(statuses)) != 1:
                                 print(
                                     color(
-                                        Color.red if status else Color.blue,
-                                        f"    Exit status {status}:\t{str(TARGET_CONFIGS[i].executable)}",
+                                        Color.blue,
+                                        f"Exit Status Differential: {str(current_input.resolve())}",
                                     )
                                 )
-                            exit_status_differentials.append(current_input)
-                        elif len(set(stdouts)) != 1:
-                            print(
-                                color(
-                                    Color.yellow,
-                                    f"Output differential: {str(current_input.resolve())}",
-                                )
-                            )
-                            for i, s in enumerate(stdouts):
+                                for i, status in enumerate(statuses):
+                                    print(
+                                        color(
+                                            Color.red if status else Color.blue,
+                                            f"    Exit status {status}:\t{str(TARGET_CONFIGS[i].executable)}",
+                                        )
+                                    )
+                                exit_status_differentials.append(current_input)
+                            elif len(set(stdouts)) != 1:
                                 print(
                                     color(
                                         Color.yellow,
-                                        f"    {str(TARGET_CONFIGS[i].executable)} printed\t{s!r}",
+                                        f"Output differential: {str(current_input.resolve())}",
                                     )
                                 )
-                            output_differentials.append(current_input)
+                                for i, s in enumerate(stdouts):
+                                    print(
+                                        color(
+                                            Color.yellow,
+                                            f"    {str(TARGET_CONFIGS[i].executable)} printed\t{s!r}",
+                                        )
+                                    )
+                                output_differentials.append(current_input)
                         else:
                             # We don't mutate exit_status_differentials, even if they're new
                             # print(color(Color.yellow, f"New coverage: {str(current_input.resolve())}"))
