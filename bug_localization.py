@@ -53,8 +53,12 @@ def _classify_by_mins(target_min_traces: dict[PosixPath, dict[str, frozenset[int
     classifications = []
     for trace, target_posix in zip(traces, target_min_traces.keys()):
         min_classification = ""
+        curr_classification_dist = len(trace)
         for min_trace_id in target_min_traces[target_posix].keys():
-            if frozenset.issubset(target_min_traces[target_posix][min_trace_id], trace):
+            distance = len(target_min_traces[target_posix][min_trace_id] - trace) + len(trace - target_min_traces[target_posix][min_trace_id])
+            # if frozenset.issubset(target_min_traces[target_posix][min_trace_id], trace):
+            if distance < curr_classification_dist:
+                curr_classification_dist = distance
                 # if set.issubset(set(min_classification), set(min_trace_id)):
                 min_classification = min_trace_id
                 # Check Ordering
@@ -99,16 +103,16 @@ bugprint_classes: dict[bugprint_t, list[tuple[str, ...]]] = {}
 def get_bugprint(traces: tuple[frozenset], target_min_traces: dict[PosixPath, dict[str, frozenset[int]]]) -> bugprint_t:
     classifications = _classify_by_mins(target_min_traces, traces)
     all_diffs = _get_differences_with_bases(classifications, target_min_traces, traces)
+    bugprint = hash(all_diffs)
     if BUG_INFO:
         print(classifications)
         print(all_diffs)
-    bugprint = hash(all_diffs)
-    if bugprint in bugprint_classes.keys():
-        if classifications != bugprint_classes[bugprint]:
+        if bugprint in bugprint_classes.keys():
+            if classifications != bugprint_classes[bugprint]:
+                bugprint_classes[bugprint].append(classifications)
+        else:
+            bugprint_classes[bugprint] = []
             bugprint_classes[bugprint].append(classifications)
-    else:
-        bugprint_classes[bugprint] = []
-        bugprint_classes[bugprint].append(classifications)
     return bugprint
 
 def get_fundamental_traces():
