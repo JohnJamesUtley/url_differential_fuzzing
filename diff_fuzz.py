@@ -18,7 +18,7 @@ from pathlib import PosixPath
 from enum import Enum
 from typing import List, Dict, Set, FrozenSet, Tuple, Callable, Optional
 from execution import run_executables
-from bug_localization import get_fundamental_traces, get_bugprint, bugprint_t, record_bugprint, clear_bugprint_records
+from bug_localization import get_fundamental_traces, get_bugprint, bugprint_t, record_bugprint, clear_bugprint_records, bugprint_classes
 try:
     from tqdm import tqdm
 except ModuleNotFoundError:
@@ -230,8 +230,11 @@ def main() -> None:
             print(f"Output differentials:")
             print("\n".join(str(f.resolve()) for f in output_differentials))
 
-    print(f"Bugs:")
-    print("\n".join(str(f) for f in sorted(bugprint_counts.items(), key=lambda x:x[1], reverse=True)))
+    if BUG_INFO:
+        print(f"Bugs:")
+        print("\n".join(str(f) for f in sorted(bugprint_counts.items(), key=lambda x:x[1], reverse=True)))
+        print(f"Bug Classes:")
+        print("\n".join(str(f) for f in bugprint_classes.items()))
 
 
 

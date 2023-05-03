@@ -29,7 +29,6 @@ def _find_mins() -> dict[PosixPath, dict[str, frozenset[int]]]:
     for target in TARGET_CONFIGS:
         trace_dictionary = {}
         target_min_traces[target.executable] = trace_dictionary
-        target_min_traces[target.executable][""] = frozenset()
     min_queue = []
     ids = []
     with open(TREE_FILENAME, "r") as tree_file:
@@ -46,6 +45,8 @@ def _find_mins() -> dict[PosixPath, dict[str, frozenset[int]]]:
         for id, (traces, statuses, stdouts) in zip(ids, traces_and_statuses_and_stdouts):
             for target, trace in zip(TARGET_CONFIGS, traces):
                 target_min_traces[target.executable][id] = trace
+    for target in TARGET_CONFIGS:
+        target_min_traces[target.executable][""] = frozenset()
     return target_min_traces
 
 def _classify_by_mins(target_min_traces: dict[PosixPath, dict[str, frozenset[int]]], traces: tuple[frozenset[int], ...]) -> tuple[str, ...]:
@@ -54,8 +55,8 @@ def _classify_by_mins(target_min_traces: dict[PosixPath, dict[str, frozenset[int
         min_classification = ""
         for min_trace_id in target_min_traces[target_posix].keys():
             if frozenset.issubset(target_min_traces[target_posix][min_trace_id], trace):
-                if set.issubset(set(min_classification), set(min_trace_id)):
-                    min_classification = min_trace_id
+                # if set.issubset(set(min_classification), set(min_trace_id)):
+                min_classification = min_trace_id
                 # Check Ordering
                 # elif not set.issubset(set(min_trace_id), set(min_classification)):
                 #     print("Trace fits into disconnected traces! This is bad.")
@@ -93,12 +94,22 @@ def record_bugprint(input_file: PosixPath, bugprint: bugprint_t, bugprint_counte
         os.makedirs(dir_name)
     shutil.copy2(input_file, f"{dir_name}/")
 
+bugprint_classes: dict[bugprint_t, list[tuple[str, ...]]] = {}
+
 def get_bugprint(traces: tuple[frozenset], target_min_traces: dict[PosixPath, dict[str, frozenset[int]]]) -> bugprint_t:
     classifications = _classify_by_mins(target_min_traces, traces)
-    print(classifications)
     all_diffs = _get_differences_with_bases(classifications, target_min_traces, traces)
-    print(all_diffs)
-    return hash(all_diffs)
+    if BUG_INFO:
+        print(classifications)
+        print(all_diffs)
+    bugprint = hash(all_diffs)
+    if bugprint in bugprint_classes.keys():
+        if classifications != bugprint_classes[bugprint]:
+            bugprint_classes[bugprint].append(classifications)
+    else:
+        bugprint_classes[bugprint] = []
+        bugprint_classes[bugprint].append(classifications)
+    return bugprint
 
 def get_fundamental_traces():
     print("Building Fundamental Traces...")

@@ -32,15 +32,19 @@ EXIT_STATUSES_MATTER: bool = False
 # Roughly how many processes to allow in a generation (within a factor of 2)
 ROUGH_DESIRED_QUEUE_LEN: int = 1000
 
-# When this is true the set of fundamentals will include minimum urls which are not valid under RFC
+# full_tree = 0
+# valid_tree = 1
+# empty_tree = 2
+# When this is 0 the set of fundamentals will include minimum urls which are not valid under RFC
 # Useful for generating distinct bugprints when parsers accept urls which do not have all the required components
 # Instead of classifying these URLs as "" they will match them with errouneous classes like "SOP"
-GENERATE_INVALID_FUNDAMENTALS: bool = True
+FUNDAMENTAL_TREE_SELECTION: int = 0
 
 # AFL++ and AFL differ a little about what goes on stdout and what goes on stderr.
 # Set this flag if you're using AFL++ so that can be handled correctly.
 USES_AFLPLUSPLUS: bool = True
 
+BUG_INFO: bool = True
 
 class TargetConfig(NamedTuple):
     executable: PosixPath  # The path to this target's executable

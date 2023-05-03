@@ -58,12 +58,21 @@ def _build_complete_tree() -> dict[str, str]:
                                                        "": ""})
     return running_tree
 
+def _build_empty_tree() -> dict[str, str]:
+    return {
+        "": ""
+    }
+
+
 
 def gen_tree(tree_filename: str):
-    if GENERATE_INVALID_FUNDAMENTALS:
+    if FUNDAMENTAL_TREE_SELECTION == 0:
         tree = _build_complete_tree()
-    else:
+    elif FUNDAMENTAL_TREE_SELECTION == 1:
         tree = _build_valid_tree()
+    else:
+        tree = _build_empty_tree()
+
     # Record Tree in file
     with open(tree_filename, "w") as tree_file:
         for key in tree.keys():
