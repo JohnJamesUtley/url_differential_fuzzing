@@ -40,6 +40,9 @@ ROUGH_DESIRED_QUEUE_LEN: int = 1000
 # Instead of classifying these URLs as "" they will match them with errouneous classes like "SOP"
 FUNDAMENTAL_TREE_SELECTION: int = 0
 
+# Set to true to allow bug reducer to reduce grammar to minimal compoenents
+GRAMMAR_REDUCTIONS: bool = False
+
 # AFL++ and AFL differ a little about what goes on stdout and what goes on stderr.
 # Set this flag if you're using AFL++ so that can be handled correctly.
 USES_AFLPLUSPLUS: bool = True

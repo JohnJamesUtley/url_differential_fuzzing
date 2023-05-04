@@ -9,12 +9,14 @@ def main():
         raise ValueError("Not a Directory!")
     bugprint_file = os.path.basename(dir_name)
     BUG_INFO = True
-    fundamental_traces = get_fundamental_traces()
+    # fundamental_traces = get_fundamental_traces()
     print(f"Bugprint File: {bugprint_file}")
     for file in listdir(dir_name):
         print(f"\n{file}")
         traces_statuses_stdouts = run_executables(PosixPath(f"{dir_name}/{file}"))
-        bugprint = get_bugprint(traces_statuses_stdouts[0], fundamental_traces)
+        with open(PosixPath(f"{dir_name}/{file}"), "rb") as ifile:
+            input: bytes = ifile.read()
+        bugprint = get_reduction_bugprint(input, get_resultprint(traces_statuses_stdouts))
         print(f"Bugprint: {bugprint}")
 
     # # Preprocessing

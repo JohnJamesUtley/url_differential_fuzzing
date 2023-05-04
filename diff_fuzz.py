@@ -18,7 +18,7 @@ from pathlib import PosixPath
 from enum import Enum
 from typing import List, Dict, Set, FrozenSet, Tuple, Callable, Optional
 from execution import run_executables
-from bug_localization import get_fundamental_traces, get_bugprint, bugprint_t, record_bugprint, clear_bugprint_records, bugprint_classes
+from bug_localization import get_fundamental_traces, get_bugprint, bugprint_t, record_bugprint, clear_bugprint_records, bugprint_classes, get_reduction_bugprint, get_resultprint
 try:
     from tqdm import tqdm
 except ModuleNotFoundError:
@@ -148,7 +148,10 @@ def main() -> None:
                     if fingerprint not in explored:
                         explored.add(fingerprint)
                         if len(set(statuses)) != 1 or len(set(stdouts)) != 1:
-                            bugprint = get_bugprint(traces, fundamental_traces)
+                            with open(current_input, "rb") as iFile:
+                                current_input_bytes: bytes = iFile.read()
+                            resultprint = get_resultprint((traces, statuses, stdouts))
+                            bugprint = get_reduction_bugprint(current_input_bytes, resultprint)
                             if generation > 0:
                                 record_bugprint(current_input, bugprint, bugprint_counts)
                             print(

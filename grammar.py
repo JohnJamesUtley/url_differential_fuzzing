@@ -158,6 +158,19 @@ grammar_dict: Dict[str, str] = {
     "port": PORT_PAT,
 }
 
+grammar_reductions: Dict[str, bytes] = {
+    "query": b"q",
+    "fragment": b"f",
+    "scheme": b"s",
+    "path_absolute": b"/p",
+    "path_empty": b"",
+    "path_rootless": b"/p",
+    "path_abempty": b"",
+    "userinfo": b"u",
+    "host": b"h",
+    "port": b"1",
+}
+
 # Takes a regex and returns a random string matching that regex
 from hypothesis.strategies import from_regex
 import warnings
