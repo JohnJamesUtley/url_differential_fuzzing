@@ -146,7 +146,6 @@ def get_reduced_form(input: bytes, base_resultprint: resultprint_t) -> bytes:
     grammar_reduced = False
     reduced_rules = set()
     while not grammar_reduced:
-        # print(running_reduction)
         m: Optional[re.Match] = re.match(grammar_re, str(running_reduction, "UTF-8"))
         if m is not None:
             grammar_reduced = True
@@ -164,15 +163,12 @@ def get_reduced_form(input: bytes, base_resultprint: resultprint_t) -> bytes:
                     resultprint = get_resultprint(traces_statuses_stdouts)
                     # -----------
                     if resultprint == base_resultprint: # Save this reduction if results match, else continue on
-                        # print(f"Rule Name: {rule_name} Rule Match: {orig_rule_match}")
-                        # print(f"Reduced")
                         reduced_rules.add(rule_name)
                         running_reduction = reduction
                         grammar_reduced = False
                         break
         else:
             grammar_reduced = True
-    # print(f"Finished Grammar Reductions: {running_reduction}")
 
     completely_reduced = False
     while not completely_reduced:
@@ -187,7 +183,6 @@ def get_reduced_form(input: bytes, base_resultprint: resultprint_t) -> bytes:
             resultprint = get_resultprint(traces_statuses_stdouts)            
             # -----------
             if resultprint == base_resultprint: # Save this reduction if results match, else continue on
-                # print(reduction)
                 running_reduction = reduction
                 completely_reduced = False
             else:

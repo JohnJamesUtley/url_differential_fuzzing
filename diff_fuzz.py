@@ -150,8 +150,7 @@ def main() -> None:
                         if len(set(statuses)) != 1 or len(set(stdouts)) != 1:
                             with open(current_input, "rb") as iFile:
                                 current_input_bytes: bytes = iFile.read()
-                            resultprint = get_resultprint((traces, statuses, stdouts))
-                            bugprint = get_reduction_bugprint(current_input_bytes, resultprint)
+                            bugprint = get_reduction_bugprint(current_input_bytes, get_resultprint((traces, statuses, stdouts)))
                             if generation > 0:
                                 record_bugprint(current_input, bugprint, bugprint_counts)
                             print(
