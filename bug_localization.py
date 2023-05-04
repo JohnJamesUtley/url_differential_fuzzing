@@ -12,6 +12,7 @@ from execution import run_executables
 from tree_gen import gen_tree
 from config import *
 from typing import List, Dict, Set, FrozenSet, Tuple, Callable, Optional
+from grammar import grammar_re, grammar_dict # type: ignore
 try:
     from tqdm import tqdm
 except ModuleNotFoundError:
@@ -19,6 +20,7 @@ except ModuleNotFoundError:
 
 bugprint_t = int
 differenceprint_t = int
+resultprint_t = int
 
 TREE_FILENAME = "tree.txt"
 MIN_DIR = "min/"
@@ -115,6 +117,70 @@ def get_bugprint(traces: tuple[frozenset], target_min_traces: dict[PosixPath, di
             bugprint_classes[bugprint].append(classifications)
     return bugprint
 
+def get_resultprint(input_file: PosixPath) -> resultprint_t:
+    traces_statuses_stdouts = run_executables(input_file)
+    statuses = traces_statuses_stdouts[1]
+    if OUTPUT_DIFFERENTIALS_MATTER:
+        stdouts = traces_statuses_stdouts[2]
+        stdout_set = set()
+        for stdout in stdouts:
+            stdout_set.add(stdout)
+        different_stdouts = (len(stdout_set) == 1)
+        return hash((statuses, different_stdouts))
+    else: 
+        return hash(statuses)
+
+def get_reduced(input_filename: PosixPath, target_min_traces: dict[PosixPath, dict[str, frozenset[int]]]) -> bugprint_t:
+    base_resultprint = get_resultprint(input_filename)
+    reduced_filename: PosixPath = PosixPath(f"reductions/{os.path.basename(input_filename)}")
+    with open(input_filename, "rb") as input_file:
+        running_reduction: bytes = input_file.read()
+
+    grammar_reduced = False
+    reduced_rules = set()
+    while not grammar_reduced:
+        print(running_reduction)
+        m: Optional[re.Match] = re.match(grammar_re, str(running_reduction, "UTF-8"))
+        if m is not None:
+            grammar_reduced = True
+            for rule_name, orig_rule_match in list(filter(lambda p: bool(p[1]), m.groupdict().items())):
+                if rule_name not in reduced_rules:
+                    # Get Resultprint
+                    slice_index: int = m.string.index(orig_rule_match)
+                    reduction = bytes(running_reduction[:slice_index] + running_reduction[slice_index + len(orig_rule_match):])
+                    with open(reduced_filename, "wb") as reduced_file:
+                        reduced_file.write(reduction)
+                    resultprint = get_resultprint(reduced_filename)
+                    # -----------
+                    if resultprint == base_resultprint: # Save this reduction if results match, else continue on
+                        print(f"Rule Name: {rule_name} Rule Match: {orig_rule_match}")
+                        print(f"Reduced")
+                        reduced_rules.add(rule_name)
+                        running_reduction = reduction
+                        grammar_reduced = False
+                        break
+        else:
+            grammar_reduced = True
+    print(running_reduction)
+
+    completely_reduced = False
+    while not completely_reduced:
+        # m = None
+        completely_reduced = True
+        for i in range(len(running_reduction)):
+            # Get Resultprint
+            reduction = running_reduction[:i] + running_reduction[i + 1:]
+            with open(reduced_filename, "wb") as reduced_file:
+                reduced_file.write(reduction)
+            resultprint = get_resultprint(reduced_filename)
+            # -----------
+            if resultprint == base_resultprint: # Save this reduction if results match, else continue on
+                print(reduction)
+                running_reduction = reduction
+                completely_reduced = False
+                break
+    return
+
 def get_fundamental_traces():
     print("Building Fundamental Traces...")
     gen_tree(TREE_FILENAME)
@@ -129,8 +195,10 @@ def main():
     print("Running...")
     traces_statuses_stdouts = run_executables(PosixPath(TEST_INPUT))
     print("Finding Diff...")
-    bugprint = get_bugprint(traces_statuses_stdouts[0], fundamental_traces)
+    bugprint = get_reduced(PosixPath(TEST_INPUT), fundamental_traces)
     print(f"Bug: {bugprint}")
+
+
 
 if __name__ == "__main__":
     main()

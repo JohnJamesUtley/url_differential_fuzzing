@@ -21,11 +21,11 @@ SUB_DELIMS_PAT: str = r"(?:[!\$&'\(\)\*\+,;=])"
 PCHAR_PAT: str = rf"(?:{UNRESERVED_PAT}|{PCT_ENCODED_PAT}|{SUB_DELIMS_PAT}|:|@)"
 
 # query = *( pchar / "/" / "?" )
-QUERY_PAT: str = rf"(?P<query>{PCHAR_PAT}|/|\?)*"
+QUERY_PAT: str = rf"(?P<query>(?:{PCHAR_PAT}|/|\?)*)"
 QUERY_RE: re.Pattern = re.compile(QUERY_PAT)
 
 # fragment = *( pchar / "/" / "?" )
-FRAGMENT_PAT: str = rf"(?P<fragment>{PCHAR_PAT}|/|\?)*"
+FRAGMENT_PAT: str = rf"(?P<fragment>(?:{PCHAR_PAT}|/|\?)*)"
 FRAGMENT_RE: re.Pattern = re.compile(FRAGMENT_PAT)
 
 # scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
@@ -141,7 +141,7 @@ HIER_PART_PAT: str = (
 HIER_PART_RE: re.Pattern = re.compile(HIER_PART_PAT)
 
 # URI = scheme ":" hier-part [ "?" query ] [ "#" fragment ]
-URI_PAT: str = rf"({SCHEME_PAT}:{HIER_PART_PAT}(?:\?{QUERY_PAT})?(?:#{FRAGMENT_PAT})?)"
+URI_PAT: str = rf"\A({SCHEME_PAT}:{HIER_PART_PAT}(?:\?{QUERY_PAT})?(?:#{FRAGMENT_PAT})?)\Z"
 URI_RE: re.Pattern = re.compile(URI_PAT)
 
 grammar_re = URI_RE
@@ -166,7 +166,7 @@ import warnings
 def generate_random_matching_input(pattern: str) -> str:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        return from_regex(r"\A" + pattern + r"\Z").example()
+        return from_regex(pattern).example()
 
 
 # if __name__ == "__main__":
