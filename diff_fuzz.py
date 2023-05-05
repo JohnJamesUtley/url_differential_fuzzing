@@ -18,7 +18,7 @@ from pathlib import PosixPath
 from enum import Enum
 from typing import List, Dict, Set, FrozenSet, Tuple, Callable, Optional
 from execution import run_executables
-from bug_localization import get_fundamental_traces, get_bugprint, bugprint_t, record_bugprint, clear_bugprint_records, bugprint_classes, get_reduction_bugprint, get_resultprint
+from bug_localization import *
 try:
     from tqdm import tqdm
 except ModuleNotFoundError:
@@ -122,7 +122,6 @@ def main() -> None:
     generation: int = 0
     exit_status_differentials: List[PosixPath] = []
     output_differentials: List[PosixPath] = []
-    bugprint_counts: dict[str, int] = {}
     try:
         with multiprocessing.Pool(processes=multiprocessing.cpu_count() // (len(TARGET_CONFIGS) * 2)) as pool:
             while len(input_queue) != 0:  # While there are still inputs to check,
@@ -151,8 +150,8 @@ def main() -> None:
                             with open(current_input, "rb") as iFile:
                                 current_input_bytes: bytes = iFile.read()
                             bugprint = get_reduction_bugprint(current_input_bytes, get_resultprint((traces, statuses, stdouts)))
-                            if generation > 0:
-                                record_bugprint(current_input, bugprint, bugprint_counts)
+                            # if generation > 0:
+                            record_bugprint(current_input, bugprint)
                             print(
                                 color(
                                     Color.green,
@@ -216,8 +215,6 @@ def main() -> None:
                     )
                 )
 
-                fingerprints: List[fingerprint_t] = []
-                proc_lists: List[subprocess.Popen] = []
                 generation += 1
     except KeyboardInterrupt:
         pass
@@ -233,10 +230,7 @@ def main() -> None:
             print("\n".join(str(f.resolve()) for f in output_differentials))
 
     if BUG_INFO:
-        print(f"Bugs:")
-        print("\n".join(str(f) for f in sorted(bugprint_counts.items(), key=lambda x:x[1], reverse=True)))
-        print(f"Bug Classes:")
-        print("\n".join(str(f) for f in bugprint_classes.items()))
+        bugprint_summary()
 
 
 

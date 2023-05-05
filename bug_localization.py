@@ -26,6 +26,7 @@ TREE_FILENAME = "tree.txt"
 REDUCTION_FILENAME = "reduction.input"
 MIN_DIR = "min/"
 TEST_INPUT = "test.input"
+BUG_SUMMARY = "bugs_summary.txt"
 
 def _find_mins() -> dict[PosixPath, dict[str, frozenset[int]]]:
     target_min_traces = {}
@@ -85,13 +86,18 @@ def _get_differences_with_bases(classifications: tuple[str, ...],
     return tuple(all_trace_differences)
 
 def clear_bugprint_records():
+    if os.path.isfile(f"bugs/{BUG_SUMMARY}"):
+        os.remove(f"bugs/{BUG_SUMMARY}")
     for bugprint_dir in os.listdir("bugs"):
         path_bugprint_dir = f"bugs/{bugprint_dir}"
         for input_file in os.listdir(path_bugprint_dir):
             os.remove(f"{path_bugprint_dir}/{input_file}")
         os.rmdir(path_bugprint_dir)
 
-def record_bugprint(input_file: PosixPath, bugprint: bugprint_t, bugprint_counter: dict[str, int]):
+bugprint_counter: dict[str, int] = {}
+bug_reductions: dict[bugprint_t, set[bytes]] = {}
+
+def record_bugprint(input_file: PosixPath, bugprint: bugprint_t):
     if bugprint in bugprint_counter.keys():
         bugprint_counter[bugprint] = bugprint_counter[bugprint] + 1
     else:
@@ -101,7 +107,18 @@ def record_bugprint(input_file: PosixPath, bugprint: bugprint_t, bugprint_counte
         os.makedirs(dir_name)
     shutil.copy2(input_file, f"{dir_name}/")
 
-bugprint_classes: dict[bugprint_t, list[tuple[str, ...]]] = {}
+def bugprint_summary():
+    with open(PosixPath(f"bugs/{BUG_SUMMARY}"), "wb") as summary_file:
+        summary_file.write(b"Exit Statuses Matter: " + (b"TRUE" if EXIT_STATUSES_MATTER else b"FALSE") + b"\n")
+        summary_file.write(b"Output Differentials Matter: " + (b"TRUE" if OUTPUT_DIFFERENTIALS_MATTER else b"FALSE") + b"\n")
+        summary_file.write(b"Targets:\n")
+        summary_file.write(b"\n".join(bytes(tc.executable) for tc in TARGET_CONFIGS))
+        summary_file.write(b"\nBugs:\n")
+        print(sorted(bugprint_counter.items(), key=lambda x:x[1], reverse=True))
+        for bug in sorted(bugprint_counter.items(), key=lambda x:x[1], reverse=True):
+            summary_file.write(bytes(str(bug), "utf-8") + b"\n")
+            for reduction in bug_reductions[bug[0]]:
+                summary_file.write(b"***" + reduction + b"***\n")
 
 def get_bugprint(traces: tuple[frozenset], target_min_traces: dict[PosixPath, dict[str, frozenset[int]]]) -> bugprint_t:
     classifications = _classify_by_mins(target_min_traces, traces)
@@ -110,12 +127,6 @@ def get_bugprint(traces: tuple[frozenset], target_min_traces: dict[PosixPath, di
     if BUG_INFO:
         print(classifications)
         print(all_diffs)
-        if bugprint in bugprint_classes.keys():
-            if classifications != bugprint_classes[bugprint]:
-                bugprint_classes[bugprint].append(classifications)
-        else:
-            bugprint_classes[bugprint] = []
-            bugprint_classes[bugprint].append(classifications)
     return bugprint
 
 def get_reduction_bugprint(input: bytes, base_resultprint: resultprint_t) -> bugprint_t:
@@ -125,12 +136,16 @@ def get_reduction_bugprint(input: bytes, base_resultprint: resultprint_t) -> bug
     traces_statuses_stdouts = run_executables(reduced_filename)
     traces = traces_statuses_stdouts[0]
     bugprint = hash(traces)
-    if RECORD_REDUCTIONS:
+    if BUG_INFO:
         if not os.path.isdir(PosixPath(f"bugs/{bugprint}")):
             os.makedirs(PosixPath(f"bugs/{bugprint}"))
         record_filename: PosixPath = PosixPath(f"bugs/{bugprint}/{hash(input)}.reduction")
         with open(record_filename, "wb") as record_file:
             record_file.write(reduced_form)
+        if bugprint not in bug_reductions.keys():
+            bug_reductions[bugprint] = {reduced_form}
+        else:
+            bug_reductions[bugprint].add(reduced_form)
     return bugprint
 
 def get_resultprint(traces_statuses_stdouts: Tuple[Tuple[FrozenSet[int], ...], Tuple[int, ...], Tuple[bytes, ...]]) -> resultprint_t:
@@ -144,6 +159,30 @@ def get_resultprint(traces_statuses_stdouts: Tuple[Tuple[FrozenSet[int], ...], T
         return hash((statuses, different_stdouts))
     else: 
         return hash(statuses)
+    
+def reduce_by_bytes(input_bytes: bytes, num_bytes: int, base_resultprint: resultprint_t) -> bytes:
+    reduced_filename: PosixPath = PosixPath(REDUCTION_FILENAME)
+    running_reduction = input_bytes
+
+    completely_reduced = False
+    while not completely_reduced:
+        completely_reduced = True
+        i = 0
+        while i < len(running_reduction):
+            # Get Resultprint
+            reduction = running_reduction[:i] + running_reduction[i + num_bytes:]
+            with open(reduced_filename, "wb") as reduced_file:
+                reduced_file.write(reduction)
+            traces_statuses_stdouts = run_executables(reduced_filename)
+            resultprint = get_resultprint(traces_statuses_stdouts)            
+            # -----------
+            if resultprint == base_resultprint: # Save this reduction if results match, else continue on
+                running_reduction = reduction
+                print(reduction)
+                completely_reduced = False
+            else:
+                i = i + 1
+    return running_reduction
 
 def get_reduced_form(input: bytes, base_resultprint: resultprint_t) -> bytes:
     running_reduction = input
@@ -177,23 +216,9 @@ def get_reduced_form(input: bytes, base_resultprint: resultprint_t) -> bytes:
         else:
             grammar_reduced = True
 
-    completely_reduced = False
-    while not completely_reduced:
-        completely_reduced = True
-        i = 0
-        while i < len(running_reduction):
-            # Get Resultprint
-            reduction = running_reduction[:i] + running_reduction[i + 1:]
-            with open(reduced_filename, "wb") as reduced_file:
-                reduced_file.write(reduction)
-            traces_statuses_stdouts = run_executables(reduced_filename)
-            resultprint = get_resultprint(traces_statuses_stdouts)            
-            # -----------
-            if resultprint == base_resultprint: # Save this reduction if results match, else continue on
-                running_reduction = reduction
-                completely_reduced = False
-            else:
-                i = i + 1
+    for i in range(MAX_BYTES_REDUCTION, 0, -1):
+        running_reduction = reduce_by_bytes(running_reduction, i, base_resultprint)
+
     return running_reduction
 
 def get_fundamental_traces():
