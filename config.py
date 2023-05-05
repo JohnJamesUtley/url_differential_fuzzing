@@ -22,7 +22,7 @@ TIMEOUT_TIME: int = 100000
 
 # Set this to false if you only care about exit status differentials
 # (i.e. the programs you're testing aren't expected to have identical output on stdout)
-OUTPUT_DIFFERENTIALS_MATTER: bool = False
+OUTPUT_DIFFERENTIALS_MATTER: bool = True
 
 # when this is True, a differential is registered if two targets exit with different status codes.
 # When it's False, a differential is registered only when one target exits with status 0 and another
@@ -42,6 +42,9 @@ FUNDAMENTAL_TREE_SELECTION: int = 0
 
 # Set to true to allow bug reducer to reduce grammar to minimal compoenents
 GRAMMAR_REDUCTIONS: bool = False
+
+# Set to true to keep reduction files
+RECORD_REDUCTIONS: bool = True
 
 # AFL++ and AFL differ a little about what goes on stdout and what goes on stderr.
 # Set this flag if you're using AFL++ so that can be handled correctly.

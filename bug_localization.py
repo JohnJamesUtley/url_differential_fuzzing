@@ -124,7 +124,14 @@ def get_reduction_bugprint(input: bytes, base_resultprint: resultprint_t) -> bug
     reduced_filename: PosixPath = PosixPath(REDUCTION_FILENAME)
     traces_statuses_stdouts = run_executables(reduced_filename)
     traces = traces_statuses_stdouts[0]
-    return hash(traces)
+    bugprint = hash(traces)
+    if RECORD_REDUCTIONS:
+        if not os.path.isdir(PosixPath(f"bugs/{bugprint}")):
+            os.makedirs(PosixPath(f"bugs/{bugprint}"))
+        record_filename: PosixPath = PosixPath(f"bugs/{bugprint}/{hash(input)}.reduction")
+        with open(record_filename, "wb") as record_file:
+            record_file.write(reduced_form)
+    return bugprint
 
 def get_resultprint(traces_statuses_stdouts: Tuple[Tuple[FrozenSet[int], ...], Tuple[int, ...], Tuple[bytes, ...]]) -> resultprint_t:
     statuses = traces_statuses_stdouts[1]
