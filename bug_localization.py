@@ -23,6 +23,8 @@ differenceprint_t = int
 TREE_FILENAME = "tree.txt"
 MIN_DIR = "min/"
 TEST_INPUT = "test.input"
+TEST_INPUT_2 = "test2.input"
+
 
 def _find_mins() -> dict[PosixPath, dict[str, frozenset[int]]]:
     target_min_traces = {}
@@ -127,10 +129,31 @@ def main():
     fundamental_traces = get_fundamental_traces()
     # Runtime
     print("Running...")
-    traces_statuses_stdouts = run_executables(PosixPath(TEST_INPUT))
+    traces_statuses_stdouts1 = run_executables(PosixPath(TEST_INPUT))
+    traces_statuses_stdouts2 = run_executables(PosixPath(TEST_INPUT_2))
+    bugprint_collection = set()
     print("Finding Diff...")
-    bugprint = get_bugprint(traces_statuses_stdouts[0], fundamental_traces)
-    print(f"Bug: {bugprint}")
+    classifications = _classify_by_mins(fundamental_traces, traces_statuses_stdouts1[0])
+    diff = set(classifications[0]).symmetric_difference(set(classifications[1]))
+    for L in range(len(diff) + 1):
+        for subset in itertools.combinations(diff, L):
+            subclassifications = (''.join([x for x in classifications[0] if x not in subset]), ''.join([x for x in classifications[1] if x not in subset]))
+            print(subclassifications)
+            all_diffs = _get_differences_with_bases((subclassifications[0], subclassifications[1]), fundamental_traces, traces_statuses_stdouts1[0])
+            bugprint_collection.add(hash(all_diffs))
+    print("-----------------")
+    classifications = _classify_by_mins(fundamental_traces, traces_statuses_stdouts2[0])
+    diff = set(classifications[0]).symmetric_difference(set(classifications[1]))
+    for L in range(len(diff) + 1):
+        for subset in itertools.combinations(diff, L):
+            subclassifications = (''.join([x for x in classifications[0] if x not in subset]), ''.join([x for x in classifications[1] if x not in subset]))
+            print(subclassifications)
+            all_diffs = _get_differences_with_bases((subclassifications[0], subclassifications[1]), fundamental_traces, traces_statuses_stdouts2[0])
+            if(hash(all_diffs) in bugprint_collection):
+                print("HIT")
+                print(hash(all_diffs))
+    # bugprint = get_bugprint(traces_statuses_stdouts1[0], fundamental_traces)
+    # print(f"Bug: {bugprint}")
 
 if __name__ == "__main__":
     main()
