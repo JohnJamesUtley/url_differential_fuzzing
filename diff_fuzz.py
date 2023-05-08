@@ -100,6 +100,10 @@ def mutate_input(input_filename: PosixPath) -> PosixPath:
 
     return mutant_filename
 
+class AutoTerminationException(Exception):
+    "Raised to terminate fuzzing at a pre-defined time"
+    pass
+
 def main() -> None:
     if len(sys.argv) > 2:
         print(f"Usage: python3 {sys.argv[0]}", file=sys.stderr)
@@ -143,6 +147,9 @@ def main() -> None:
                 for current_input, (traces, statuses, stdouts) in zip(
                     input_queue, traces_and_statuses_and_stdouts
                 ):
+                    if AUTO_TERMINATION != -1:
+                        if time.time() - start_time > AUTO_TERMINATION:
+                            raise AutoTerminationException
                     inputs_run = inputs_run + 1
                     fingerprint = hash(traces)
                     # If we found something new, mutate it and add its children to the input queue
@@ -219,9 +226,13 @@ def main() -> None:
                 )
 
                 generation += 1
-            termination_reason = "No More Mutation Candidates"
-    except KeyboardInterrupt:
-        termination_reason = "Keyboard Interrupt"
+            if len(input_queue) == 0:
+                termination_reason = "No More Mutation Candidates"
+    except (KeyboardInterrupt, AutoTerminationException) as e:
+        if isinstance(e, AutoTerminationException):
+            termination_reason = "Auto-Termination after " + str(AUTO_TERMINATION) + " seconds"
+        else:
+            termination_reason = "Keyboard Interrupt"
         pass
 
     if exit_status_differentials == output_differentials == []:

@@ -46,6 +46,9 @@ GRAMMAR_REDUCTIONS: bool = False
 # Maximum number of bytes to delete at one time when doing reductions
 MAX_BYTES_REDUCTION: int = 4
 
+# Set to -1 to disable auto-termination, otherwise set to the number of seconds to run the process
+AUTO_TERMINATION: float = 120
+
 # AFL++ and AFL differ a little about what goes on stdout and what goes on stderr.
 # Set this flag if you're using AFL++ so that can be handled correctly.
 USES_AFLPLUSPLUS: bool = True
