@@ -13,6 +13,8 @@ from tree_gen import gen_tree
 from config import *
 from typing import List, Dict, Set, FrozenSet, Tuple, Callable, Optional
 from grammar import grammar_re, grammar_dict, grammar_reductions # type: ignore
+from datetime import datetime
+import time
 try:
     from tqdm import tqdm
 except ModuleNotFoundError:
@@ -21,6 +23,8 @@ except ModuleNotFoundError:
 bugprint_t = int
 differenceprint_t = int
 resultprint_t = int
+
+LISTED_EXAMPLES_PER_BUG: int = 4
 
 TREE_FILENAME = "tree.txt"
 REDUCTION_FILENAME = "reduction.input"
@@ -96,29 +100,68 @@ def clear_bugprint_records():
 
 bugprint_counter: dict[str, int] = {}
 bug_reductions: dict[bugprint_t, set[bytes]] = {}
+bug_stdout_differential: dict[bugprint_t, bool] = {}
 
-def record_bugprint(input_file: PosixPath, bugprint: bugprint_t):
+def record_bugprint(input_file: PosixPath, bugprint: bugprint_t, stdout_differential: bool):
     if bugprint in bugprint_counter.keys():
         bugprint_counter[bugprint] = bugprint_counter[bugprint] + 1
     else:
         bugprint_counter[bugprint] = 1
+    bug_stdout_differential[bugprint] = stdout_differential
     dir_name = f"bugs/{bugprint}"
     if not os.path.isdir(dir_name):
         os.makedirs(dir_name)
     shutil.copy2(input_file, f"{dir_name}/")
 
-def bugprint_summary():
+def bugprint_summary(fingerprint_count: int, inputs_run: int, generation: int, start_time: float, termination_reason: str):
     with open(PosixPath(f"bugs/{BUG_SUMMARY}"), "wb") as summary_file:
+        summary_file.write(b"-----------RUN INFO----------\n")
+        summary_file.write(b"\nLAST COMMIT: ")
+        summary_file.write(subprocess.check_output(["git", "describe", "--always"]).strip() + b"\n")
+        summary_file.write(b"\nDATE: ")
+        summary_file.write(bytes(str(datetime.now().strftime("%d/%m/%Y %H:%M:%S")), "utf-8") + b"\n")
+        summary_file.write(b"\nTARGETS:\n")
+        summary_file.write(b"\n".join(bytes(tc.executable) for tc in TARGET_CONFIGS))
+        summary_file.write(b"\n\nOPTIONS:\n")
         summary_file.write(b"Exit Statuses Matter: " + (b"TRUE" if EXIT_STATUSES_MATTER else b"FALSE") + b"\n")
         summary_file.write(b"Output Differentials Matter: " + (b"TRUE" if OUTPUT_DIFFERENTIALS_MATTER else b"FALSE") + b"\n")
-        summary_file.write(b"Targets:\n")
-        summary_file.write(b"\n".join(bytes(tc.executable) for tc in TARGET_CONFIGS))
-        summary_file.write(b"\nBugs:\n")
-        print(sorted(bugprint_counter.items(), key=lambda x:x[1], reverse=True))
+        summary_file.write(b"\n-----------RESULTS----------\n")
+        summary_file.write(b"\nTERMINATION REASON: ")
+        summary_file.write(bytes(termination_reason, 'utf-8') + b"\n")
+        summary_file.write(b"\tCPU EXECUTION TIME: ")
+        summary_file.write(bytes(str(time.process_time()), 'utf-8') + b" Seconds\n")
+        summary_file.write(b"\tACTUAL EXECUTION TIME: ")
+        summary_file.write(bytes(str(time.time() - start_time), 'utf-8') + b" Seconds\n")
+        summary_file.write(b"\nINPUTS RUN: ")
+        summary_file.write(bytes(str(inputs_run), 'utf-8') + b"\n")
+        summary_file.write(b"\tFINGERPRINTS EXPLORED: ")
+        summary_file.write(bytes(str(fingerprint_count), 'utf-8') + b"\n")
+        summary_file.write(b"\tGENERATIONS COMPLETED: ")
+        summary_file.write(bytes(str(generation), 'utf-8') + b"\n")
+        summary_file.write(b"\nTOTAL BUGS FOUND: ")
+        summary_file.write(bytes(str(sum(x for x in bugprint_counter.values())), 'utf-8') + b"\n")
+        summary_file.write(b"\tBUGPRINTS FOUND: ")
+        summary_file.write(bytes(str(len(bugprint_counter.keys())), 'utf-8') + b"\n")
+        summary_file.write(b"\tBUGS WITH UNIQUE BUGPRINTS: ")
+        summary_file.write(bytes(str(sum(x for x in bugprint_counter.values() if x == 1)), 'utf-8') + b"\n")
+        summary_file.write(b"\nEXIT DIFFERENTIAL BUGS FOUND: ")
+        summary_file.write(bytes(str(sum(bugprint_counter[x] for x in bugprint_counter.keys() if not bug_stdout_differential[x])), 'utf-8') + b"\n")
+        summary_file.write(b"\tBUGPRINTS FOUND: ")
+        summary_file.write(bytes(str(sum(1 for x in bugprint_counter.keys() if not bug_stdout_differential[x])), 'utf-8') + b"\n")
+        summary_file.write(b"\tBUGS WITH UNIQUE BUGPRINTS: ")
+        summary_file.write(bytes(str(sum(bugprint_counter[x] for x in bugprint_counter.keys() if bugprint_counter[x] == 1 and not bug_stdout_differential[x])), 'utf-8') + b"\n")
+        summary_file.write(b"\nSTDOUT DIFFERENTIAL BUGS FOUND: ")
+        summary_file.write(bytes(str(sum(bugprint_counter[x] for x in bugprint_counter.keys() if bug_stdout_differential[x])), 'utf-8') + b"\n")
+        summary_file.write(b"\tBUGPRINTS FOUND: ")
+        summary_file.write(bytes(str(sum(1 for x in bugprint_counter.keys() if bug_stdout_differential[x])), 'utf-8') + b"\n")
+        summary_file.write(b"\tBUGS WITH UNIQUE BUGPRINTS: ")
+        summary_file.write(bytes(str(sum(bugprint_counter[x] for x in bugprint_counter.keys() if bugprint_counter[x] == 1 and bug_stdout_differential[x])), 'utf-8') + b"\n")
+        summary_file.write(b"\nBUGS:\n")
         for bug in sorted(bugprint_counter.items(), key=lambda x:x[1], reverse=True):
-            summary_file.write(bytes(str(bug), "utf-8") + b"\n")
-            for reduction in bug_reductions[bug[0]]:
+            summary_file.write(bytes(str(bug) + ": " + ("exit differential" if not bug_stdout_differential[bug[0]] else "stdout differential"), "utf-8") + b"\n")
+            for reduction in list(bug_reductions[bug[0]])[0:LISTED_EXAMPLES_PER_BUG]:
                 summary_file.write(b"***" + reduction + b"***\n")
+
 
 def get_bugprint(traces: tuple[frozenset], target_min_traces: dict[PosixPath, dict[str, frozenset[int]]]) -> bugprint_t:
     classifications = _classify_by_mins(target_min_traces, traces)

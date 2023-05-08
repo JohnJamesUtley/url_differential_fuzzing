@@ -105,7 +105,6 @@ def main() -> None:
         print(f"Usage: python3 {sys.argv[0]}", file=sys.stderr)
         sys.exit(1)
 
-    fundamental_traces = get_fundamental_traces()
 
     clear_bugprint_records()
 
@@ -118,6 +117,10 @@ def main() -> None:
     # Keep these fingerprints in a set.
     # An input is worth mutation if its fingerprint is new.
     explored: Set[fingerprint_t] = set()
+
+    inputs_run: int = 0
+    start_time: float = time.time()
+    termination_reason: str = "No Reason Found"
 
     generation: int = 0
     exit_status_differentials: List[PosixPath] = []
@@ -140,7 +143,7 @@ def main() -> None:
                 for current_input, (traces, statuses, stdouts) in zip(
                     input_queue, traces_and_statuses_and_stdouts
                 ):
-                    
+                    inputs_run = inputs_run + 1
                     fingerprint = hash(traces)
                     # If we found something new, mutate it and add its children to the input queue
                     # If we get one program to fail while another succeeds, then we're doing good.
@@ -151,7 +154,7 @@ def main() -> None:
                                 current_input_bytes: bytes = iFile.read()
                             bugprint = get_reduction_bugprint(current_input_bytes, get_resultprint((traces, statuses, stdouts)))
                             # if generation > 0:
-                            record_bugprint(current_input, bugprint)
+                            record_bugprint(current_input, bugprint, len(set(statuses)) == 1)
                             print(
                                 color(
                                     Color.green,
@@ -216,7 +219,9 @@ def main() -> None:
                 )
 
                 generation += 1
+            termination_reason = "No More Mutation Candidates"
     except KeyboardInterrupt:
+        termination_reason = "Keyboard Interrupt"
         pass
 
     if exit_status_differentials == output_differentials == []:
@@ -230,7 +235,7 @@ def main() -> None:
             print("\n".join(str(f.resolve()) for f in output_differentials))
 
     if BUG_INFO:
-        bugprint_summary()
+        bugprint_summary(len(explored), inputs_run, generation, start_time, termination_reason)
 
 
 
