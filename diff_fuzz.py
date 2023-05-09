@@ -159,9 +159,9 @@ def main() -> None:
                         if len(set(statuses)) != 1 or len(set(stdouts)) != 1:
                             with open(current_input, "rb") as iFile:
                                 current_input_bytes: bytes = iFile.read()
-                            bugprint = get_reduction_bugprint(current_input_bytes, get_resultprint((traces, statuses, stdouts)))
-                            # if generation > 0:
-                            record_bugprint(current_input, bugprint, len(set(statuses)) == 1)
+                            bugprint = get_reduction_bugprint(current_input_bytes, get_resultprint((traces, statuses, stdouts)), PosixPath(f"reductions/{random.randint(0, 2**32-1)}.reduce.input"))
+                            if generation > 0:
+                                record_bugprint(current_input, bugprint, len(set(statuses)) == 1)
                             print(
                                 color(
                                     Color.green,

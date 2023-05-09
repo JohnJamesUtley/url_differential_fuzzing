@@ -20,8 +20,9 @@ from config import *
 def parse_trace_file(trace_file: io.TextIOWrapper) -> Dict[int, int]:
     result: Dict[int, int] = {}
     for line in trace_file.readlines():
-        edge, count = map(int, line.strip().split(":"))
-        result[edge] = count
+        parts = line.strip().split(":")
+        if len(parts) != 1:
+            result[parts[0]] = parts[1]
     return result
 
 def get_trace_length(trace_file: io.TextIOWrapper) -> int:
@@ -78,16 +79,17 @@ def run_executables(
 
     for target_config in TARGET_CONFIGS:
         command_line: List[str] = make_command_line(target_config, current_input)
-        with open(current_input) as input_file:
-            traced_procs.append(
-                subprocess.Popen(
-                    command_line,
-                    stdin=input_file,
-                    stdout=subprocess.PIPE if OUTPUT_DIFFERENTIALS_MATTER else subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    env=target_config.env,
+        if target_config.traced:
+            with open(current_input) as input_file:
+                traced_procs.append(
+                    subprocess.Popen(
+                        command_line,
+                        stdin=input_file,
+                        stdout=subprocess.PIPE if OUTPUT_DIFFERENTIALS_MATTER else subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        env=target_config.env,
+                    )
                 )
-            )
         with open(current_input) as input_file:
             untraced_procs.append(
                 subprocess.Popen(
@@ -108,8 +110,9 @@ def run_executables(
 
     l = []
     for c in TARGET_CONFIGS:
-        with open(get_trace_filename(c.executable, current_input)) as trace_file:
-            l.append(get_trace_edge_set(trace_file))
+        if(c.traced):
+            with open(get_trace_filename(c.executable, current_input)) as trace_file:
+                l.append(get_trace_edge_set(trace_file))
 
     traces = tuple(l)
 

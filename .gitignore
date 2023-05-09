@@ -9,3 +9,4 @@ bugsexamination*
 url_fuzz_env/*
 .hypothesis/*
 .mypy_cache/*
+benchmarking

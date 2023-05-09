@@ -22,7 +22,7 @@ TIMEOUT_TIME: int = 100000
 
 # Set this to false if you only care about exit status differentials
 # (i.e. the programs you're testing aren't expected to have identical output on stdout)
-OUTPUT_DIFFERENTIALS_MATTER: bool = True
+OUTPUT_DIFFERENTIALS_MATTER: bool = False
 
 # when this is True, a differential is registered if two targets exit with different status codes.
 # When it's False, a differential is registered only when one target exits with status 0 and another
@@ -30,7 +30,7 @@ OUTPUT_DIFFERENTIALS_MATTER: bool = True
 EXIT_STATUSES_MATTER: bool = False
 
 # Roughly how many processes to allow in a generation (within a factor of 2)
-ROUGH_DESIRED_QUEUE_LEN: int = 1000
+ROUGH_DESIRED_QUEUE_LEN: int = 3000
 
 # full_tree = 0
 # valid_tree = 1
@@ -47,7 +47,7 @@ GRAMMAR_REDUCTIONS: bool = False
 MAX_BYTES_REDUCTION: int = 4
 
 # Set to -1 to disable auto-termination, otherwise set to the number of seconds to run the process
-AUTO_TERMINATION: float = 120
+AUTO_TERMINATION: float = 1200
 
 # AFL++ and AFL differ a little about what goes on stdout and what goes on stderr.
 # Set this flag if you're using AFL++ so that can be handled correctly.
@@ -60,6 +60,7 @@ class TargetConfig(NamedTuple):
     cli_args: List[str]  # The CLI arguments this target needs
     needs_qemu: bool  # Whether this executable needs to run in QEMU mode (is a binary that wasn't compiled with afl-cc)
     needs_python_afl: bool  # Whether this executable needs to run with python-afl (is a python script)
+    traced: bool
     env: Dict[str, str]  # The environment variables to pass to the executable
 
 
@@ -70,22 +71,25 @@ TARGET_CONFIGS: List[TargetConfig] = [
         cli_args=[],
         needs_qemu=False,
         needs_python_afl=True,
+        traced=True,
         env=dict(os.environ),
     ),
-    # TargetConfig(
-    #    executable=PosixPath("./targets/urllib3_target.py"),
-    #    cli_args=[],
-    #    needs_qemu=False,
-    #    needs_python_afl=True,
-    #    env=dict(os.environ),
-    # ),
-    # TargetConfig(
-    #    executable=PosixPath("./targets/furl_target.py"),
-    #    cli_args=[],
-    #    needs_qemu=False,
-    #    needs_python_afl=True,
-    #    env=dict(os.environ),
-    # ),
+    TargetConfig(
+       executable=PosixPath("./targets/urllib3_target.py"),
+       cli_args=[],
+       needs_qemu=False,
+       needs_python_afl=True,
+       traced=True,
+       env=dict(os.environ),
+    ),
+    TargetConfig(
+       executable=PosixPath("./targets/furl_target.py"),
+       cli_args=[],
+       needs_qemu=False,
+       needs_python_afl=True,
+       traced=True,
+       env=dict(os.environ),
+    ),
     # TargetConfig(
     #     executable=PosixPath("./targets/yarl_target.py"),
     #     cli_args=[],
@@ -98,6 +102,7 @@ TARGET_CONFIGS: List[TargetConfig] = [
        cli_args=[],
        needs_qemu=False,
        needs_python_afl=True,
+       traced=True,
        env=dict(os.environ),
     ),
     # TargetConfig(
