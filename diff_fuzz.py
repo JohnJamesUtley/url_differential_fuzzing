@@ -69,6 +69,8 @@ def grammar_mutate(m: re.Match, _: Any) -> bytes:
     # even though _ is ignored.
     rule_name, orig_rule_match = random.choice(list(filter(lambda p: bool(p[1]), m.groupdict().items())))
     new_rule_match: str = generate_random_matching_input(grammar_dict[rule_name])
+    # while len(new_rule_match) > 3:
+    #     new_rule_match = generate_random_matching_input(grammar_dict[rule_name])
 
     # This has a chance of being wrong, but that's okay in my opinion
     slice_index: int = m.string.index(orig_rule_match)
@@ -93,8 +95,10 @@ def byte_delete(b: bytes) -> bytes:
     index: int = random.randint(0, len(b) - 1)
     return b[:index] + b[index + 1 :]
 
+eligible_grammar: int = 0
 
 def mutate(b: bytes) -> bytes:
+    global eligible_grammar
     mutators: List[Callable[[bytes], bytes]] = [byte_insert]
     if len(b) > 0:
         mutators.append(byte_change)
@@ -105,6 +109,8 @@ def mutate(b: bytes) -> bytes:
             m: re.Match | None = re.match(grammar_re, str(b, "UTF-8"))
             if m is not None:
                 mutators.append(functools.partial(grammar_mutate, m))
+            else:
+                eligible_grammar = eligible_grammar - 1
         except UnicodeDecodeError:
             pass
 
@@ -264,6 +270,7 @@ def run_executables(
 
 
 def main(minimized_differentials: List[bytes]) -> None:
+    global eligible_grammar
     # We take minimized_differentials as an argument because we want
     # it to persist even if this function has an uncaught exception.
     assert len(minimized_differentials) == 0
@@ -328,8 +335,10 @@ def main(minimized_differentials: List[bytes]) -> None:
                     minimized_fingerprints.add(minimized_fingerprint)
 
         input_queue.clear()
+        eligible_grammar = 0
         while len(mutation_candidates) != 0 and len(input_queue) < ROUGH_DESIRED_QUEUE_LEN:
             input_queue += list(map(mutate, mutation_candidates))
+        print(eligible_grammar)
 
         print(
             f"End of generation {generation}.\n"
