@@ -2,6 +2,7 @@
 
 require 'uri'
 require 'base64'
+require 'afl'
 
 def main
     url_string = STDIN.read
@@ -27,5 +28,12 @@ def main
 end
 
 if __FILE__ == $0
-    main()
+
+    unless ENV['NO_AFL']
+        AFL.init
+    end
+
+    AFL.with_exceptions_as_crashes do
+        main()
+    end
 end

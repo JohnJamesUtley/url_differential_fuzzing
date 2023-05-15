@@ -43,4 +43,11 @@ for PKG in hypothesis tqdm; do
     pip3 install "$PKG" || { deactivate; fail "Couldn't install $PKG."; }
 done
 
+# Get Ruby Afl
+git clone https://github.com/richo/afl-ruby
+cd afl-ruby/lib/afl
+ruby ../../ext/afl_ext/extconf.rb
+make
+cd ../../../..
+
 echo -e "\033[32mYou are now in the fuzzing venv. run \`deactivate\` to exit the venv.\033[0m"

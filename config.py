@@ -72,8 +72,8 @@ class TargetConfig:
     # Whether this executable needs to run in QEMU mode
     # (should be True when target is not instrumented for AFL)
     needs_qemu: bool = False
-    # Whether this executable needs to run with python-afl (is a python script)
-    needs_python_afl: bool = False
+    # Which afl version this target needs "basic", "python", or "ruby"
+    afl_needed: str = "basic"
     # The environment variables to pass to the executable
     env: Dict[str, str] = field(default_factory=lambda: dict(environ))
     # The character encoding that this program uses for its output
@@ -83,29 +83,29 @@ class TargetConfig:
 
 # Configuration for each fuzzing target
 TARGET_CONFIGS: List[TargetConfig] = [
-    # TargetConfig(
-    #     executable=PosixPath("./targets/urllib_target.py"),
-    #     needs_python_afl=True,
-    # ),
+    TargetConfig(
+        executable=PosixPath("./targets/urllib_target.py"),
+        afl_needed="python",
+    ),
     # TargetConfig(
     #     executable=PosixPath("./targets/urllib3_target.py"),
-    #     needs_python_afl=True,
+    #     afl_needed="python",
     # ),
     # TargetConfig(
     #     executable=PosixPath("./targets/furl_target.py"),
-    #     needs_python_afl=True,
+    #     afl_needed="python",
     # ),
     # TargetConfig(
     #     executable=PosixPath("./targets/yarl_target.py"),
-    #     needs_python_afl=True,
+    #     afl_needed="python",
     # ),
-    TargetConfig(
-        executable=PosixPath("./targets/rfc3986_target.py"),
-        needs_python_afl=True,
-    ),
+    # TargetConfig(
+    #     executable=PosixPath("./targets/rfc3986_target.py"),
+    #     afl_needed="python",
+    # ),
     # TargetConfig(
     #     executable=PosixPath("./targets/hyperlink_target.py"),
-    #     needs_python_afl=True,
+    #     afl_needed="python",
     # ),
     # TargetConfig(
     #     executable=PosixPath("./targets/curl/curl_target"),
@@ -118,6 +118,6 @@ TARGET_CONFIGS: List[TargetConfig] = [
     # ),
     TargetConfig(
         executable=PosixPath("./targets/uri_ruby_target.rb"),
-        needs_tracing=False,
+        afl_needed="ruby",
     ),
 ]

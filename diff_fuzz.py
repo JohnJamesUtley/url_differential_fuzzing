@@ -125,7 +125,10 @@ def parse_tracer_output(tracer_output: bytes) -> FrozenSet[int]:
 def make_command_line(tc: TargetConfig) -> List[str]:
     command_line: List[str] = []
     if tc.needs_tracing:
-        if tc.needs_python_afl:
+        if tc.afl_needed == 'ruby':
+            command_line.append("env")
+            command_line.append("AFL_NO_FORKSRV=1")
+        if tc.afl_needed == 'python':
             command_line.append("py-afl-showmap")
         else:
             command_line.append("afl-showmap")
@@ -136,11 +139,12 @@ def make_command_line(tc: TargetConfig) -> List[str]:
         command_line += ["-t", str(TIMEOUT_TIME)]
         command_line.append("--")
 
-    if tc.needs_python_afl:
+    if tc.afl_needed == 'python':
         command_line.append("python3")
+    elif tc.afl_needed == 'ruby':
+        command_line.append("/usr/bin/ruby")
     command_line.append(str(tc.executable.resolve()))
     command_line += tc.cli_args
-
     return command_line
 
 
