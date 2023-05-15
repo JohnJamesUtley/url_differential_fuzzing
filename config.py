@@ -23,7 +23,7 @@ TIMEOUT_TIME: int = 10000
 
 # Set this to False if you only care about exit status differentials
 # (i.e. the programs you're testing aren't expected to have identical output on stdout)
-DETECT_OUTPUT_DIFFERENTIALS: bool = False
+DETECT_OUTPUT_DIFFERENTIALS: bool = True
 
 # Set this to True if you want to use grammar mutations.
 # (Requires a grammar.py with the appropriate interface)
@@ -87,22 +87,22 @@ TARGET_CONFIGS: List[TargetConfig] = [
     #     executable=PosixPath("./targets/urllib_target.py"),
     #     needs_python_afl=True,
     # ),
-    TargetConfig(
-        executable=PosixPath("./targets/urllib3_target.py"),
-        needs_python_afl=True,
-    ),
+    # TargetConfig(
+    #     executable=PosixPath("./targets/urllib3_target.py"),
+    #     needs_python_afl=True,
+    # ),
     # TargetConfig(
     #     executable=PosixPath("./targets/furl_target.py"),
     #     needs_python_afl=True,
     # ),
-    TargetConfig(
-        executable=PosixPath("./targets/yarl_target.py"),
-        needs_python_afl=True,
-    ),
     # TargetConfig(
-    #     executable=PosixPath("./targets/rfc3986_target.py"),
+    #     executable=PosixPath("./targets/yarl_target.py"),
     #     needs_python_afl=True,
     # ),
+    TargetConfig(
+        executable=PosixPath("./targets/rfc3986_target.py"),
+        needs_python_afl=True,
+    ),
     # TargetConfig(
     #     executable=PosixPath("./targets/hyperlink_target.py"),
     #     needs_python_afl=True,
@@ -116,4 +116,8 @@ TARGET_CONFIGS: List[TargetConfig] = [
     # TargetConfig(
     #     executable=PosixPath("./targets/boost_url/boost_url_target"),
     # ),
+    TargetConfig(
+        executable=PosixPath("./targets/uri_ruby_target.rb"),
+        needs_tracing=False,
+    ),
 ]
