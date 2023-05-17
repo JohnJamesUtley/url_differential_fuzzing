@@ -16,6 +16,7 @@ import os
 import re
 import json
 import shutil
+import tempfile
 from dataclasses import fields
 from pathlib import PosixPath
 from typing import List, Set, FrozenSet, Tuple, Callable, Any
@@ -38,7 +39,6 @@ from config import (
     DELETION_LENGTHS,
     RESULTS_DIR,
     USE_GRAMMAR_MUTATIONS,
-    EXECUTION_DIR
 )
 
 if USE_GRAMMAR_MUTATIONS:
@@ -58,6 +58,8 @@ assert RESULTS_DIR.is_dir()
 assert all(map(lambda tc: tc.executable.exists(), TARGET_CONFIGS))
 
 fingerprint_t = Tuple[FrozenSet[int], ...]
+
+temp_file: PosixPath
 
 
 def grammar_mutate(m: re.Match, _: Any) -> bytes:
@@ -179,9 +181,10 @@ def minimize_differential(bug_inducing_input: bytes) -> bytes:
 
 @functools.lru_cache
 def run_executables(current_inputs: Tuple[bytes], disable_tracing: bool = False) -> List[Tuple[fingerprint_t,Tuple[int, ...],Tuple[ParseTree | None, ...]]]:
+    global temp_file
 
     # Create directory to run showmap, save it for later
-    exec_dir = EXECUTION_DIR.joinpath(str(uuid.uuid4()))
+    exec_dir = temp_file.joinpath(str(uuid.uuid4()))
     gen_dir = exec_dir.joinpath("generation")
     trace_dir = exec_dir.joinpath("trace")
 
@@ -210,6 +213,7 @@ def run_executables(current_inputs: Tuple[bytes], disable_tracing: bool = False)
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                     env=tc.env,
+                    cwd=temp_file.resolve(),
                 )
                 traced_procs.append(traced_proc)
             else:
@@ -226,6 +230,7 @@ def run_executables(current_inputs: Tuple[bytes], disable_tracing: bool = False)
                 stdout=subprocess.PIPE if DETECT_OUTPUT_DIFFERENTIALS else subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 env=tc.env,
+                cwd=temp_file.resolve(),
             )
             assert untraced_proc.stdin is not None
             untraced_proc.stdin.write(current_input)
@@ -274,15 +279,12 @@ def run_executables(current_inputs: Tuple[bytes], disable_tracing: bool = False)
 
 
 def main(minimized_differentials: List[bytes]) -> None:
+    global temp_file
+    temp_file = PosixPath(tempfile.mkdtemp(prefix="diff_fuzz_"))
+
     # We take minimized_differentials as an argument because we want
     # it to persist even if this function has an uncaught exception.
     assert len(minimized_differentials) == 0
-
-    # Clear out the execution directory
-    if os.path.exists(EXECUTION_DIR):
-        shutil.rmtree(EXECUTION_DIR)
-
-    os.mkdir(EXECUTION_DIR)
 
     input_queue: List[bytes] = []
     for seed_input in SEED_INPUTS:
@@ -395,7 +397,8 @@ if __name__ == "__main__":
         pass
 
     # Clean up interrupted files
-    shutil.rmtree(EXECUTION_DIR)
+    if(os.path.exists(temp_file)):
+        shutil.rmtree(temp_file)
 
     if len(final_results) != 0:
         print("Differentials:", file=sys.stderr)

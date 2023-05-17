@@ -10,6 +10,3 @@ typecheck:
 
 lint:
 	pylint --disable=line-too-long,missing-module-docstring,invalid-name,missing-function-docstring,missing-class-docstring,unnecessary-lambda-assignment,consider-using-with,too-many-locals,multiple-statements diff_fuzz.py config.py grammar.py
-
-clean:
-	rm .afl-showmap-temp*

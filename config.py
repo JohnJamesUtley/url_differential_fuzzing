@@ -18,9 +18,6 @@ SEED_DIR: PosixPath = PosixPath("./seeds")
 # The directory where the findings go when the fuzzer run finishes.
 RESULTS_DIR: PosixPath = PosixPath("./results")
 
-# The directory the fuzzer saves inputs into
-EXECUTION_DIR: PosixPath = PosixPath("./execution")
-
 # Time in milliseconds given to each process
 TIMEOUT_TIME: int = 10000
 
@@ -105,14 +102,14 @@ TARGET_CONFIGS: List[TargetConfig] = [
     # TargetConfig(
     #     executable=PosixPath("./targets/curl/curl_target"),
     # ),
-    TargetConfig(
-        executable=PosixPath("./targets/furl/furl_target"),
-        needs_python_afl=True,
-    ),
-    TargetConfig(
-        executable=PosixPath("./targets/hyperlink/hyperlink_target"),
-        needs_python_afl=True,
-    ),
+    # TargetConfig(
+    #     executable=PosixPath("./targets/furl/furl_target"),
+    #     needs_python_afl=True,
+    # ),
+    # TargetConfig(
+    #     executable=PosixPath("./targets/hyperlink/hyperlink_target"),
+    #     needs_python_afl=True,
+    # ),
     # TargetConfig(
     #     executable=PosixPath("./targets/libwget/libwget_target"),
     # ),
@@ -124,12 +121,12 @@ TARGET_CONFIGS: List[TargetConfig] = [
         executable=PosixPath("./targets/urllib/urllib_target"),
         needs_python_afl=True,
     ),
-    TargetConfig(
-        executable=PosixPath("./targets/urllib3/urllib3_target"),
-        needs_python_afl=True,
-    ),
-    TargetConfig(
-        executable=PosixPath("./targets/yarl/yarl_target"),
-        needs_python_afl=True,
-    ),
+    # TargetConfig(
+    #     executable=PosixPath("./targets/urllib3/urllib3_target"),
+    #     needs_python_afl=True,
+    # ),
+    # TargetConfig(
+    #     executable=PosixPath("./targets/yarl/yarl_target"),
+    #     needs_python_afl=True,
+    # ),
 ]
