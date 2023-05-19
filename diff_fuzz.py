@@ -18,6 +18,7 @@ import uuid
 import shutil
 import base64
 import time
+import signal
 from pathlib import PosixPath
 from typing import (
     List,
@@ -64,6 +65,10 @@ assert all(map(lambda tc: tc.executable.exists(), TARGET_CONFIGS))
 fingerprint_t = Tuple[FrozenSet[int], ...]
 start_time: float
 
+def sigterm_handler(signal, frame):
+    raise KeyboardInterrupt
+
+signal.signal(signal.SIGTERM, sigterm_handler)
 
 def grammar_mutate(b: bytes) -> bytes:
     # This function takes _ so it can have the same
