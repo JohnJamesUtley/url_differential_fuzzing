@@ -23,7 +23,7 @@ TIMEOUT_TIME: int = 50000
 
 # Time in seconds to auto-terminate the fuzzer
 # Set to -1 to disable auto termination
-AUTO_TERMINATION_TIME: int = 20
+AUTO_TERMINATION_TIME: int = 1200
 
 # Set this to False if you only care about exit status differentials
 # (i.e. the programs you're testing aren't expected to have identical output on stdout)
@@ -118,11 +118,11 @@ TARGET_CONFIGS: List[TargetConfig] = [
     #     name="curl",
     #     executable=PosixPath("./targets/curl/curl_target"),
     # ),
-    # TargetConfig(
-    #     name="furl",
-    #     executable=PosixPath("./targets/furl/furl_target"),
-    #     needs_python_afl=True,
-    # ),
+    TargetConfig(
+        name="furl",
+        executable=PosixPath("./targets/furl/furl_target"),
+        needs_python_afl=True,
+    ),
     # TargetConfig(
     #     name="hyperlink",
     #     executable=PosixPath("./targets/hyperlink/hyperlink_target"),
