@@ -1,5 +1,6 @@
 #!/bin/bash
 
+rm -rf /tmp/diff_fuzz* # Just in case temp files were left from a previous run
 cat benchmarking/benchmarks | while read line
 do
     name=$(echo $line | awk '{print $1}')
