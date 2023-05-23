@@ -432,14 +432,15 @@ if __name__ == "__main__":
         main(final_results, run_dir)
     except KeyboardInterrupt:
         pass
-    
+    print("{")
     print(f"\"RunTime\":\"{'{:.2f}'.format(time.time() - start_time)}\",")
-    print("\"Differentials:\"[")
+    print("\"Differentials\":[")
     if len(final_results) != 0:
         print(",\n".join(f"{{\"Hash\":\"{hash(repr(b[0]))}\", \"Time\":\"{'{:.2f}'.format(b[1])}\", \"Generation\":\"{b[2]}\"}}" for b in final_results))
     else:
         print("No differentials found! Try increasing ROUGH_DESIRED_QUEUE_LEN.", file=sys.stderr)
     print("]")
+    print("}")
 
     shutil.rmtree(run_dir)
 
