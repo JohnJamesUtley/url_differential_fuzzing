@@ -18,7 +18,6 @@ import uuid
 import shutil
 import base64
 import time
-import signal
 from pathlib import PosixPath
 from typing import (
     List,
@@ -44,6 +43,7 @@ from config import (
     DELETION_LENGTHS,
     RESULTS_DIR,
     USE_GRAMMAR_MUTATIONS,
+    AUTO_TERMINATION_TIME,
 )
 
 if USE_GRAMMAR_MUTATIONS:
@@ -64,11 +64,6 @@ assert all(map(lambda tc: tc.executable.exists(), TARGET_CONFIGS))
 
 fingerprint_t = Tuple[FrozenSet[int], ...]
 start_time: float
-
-def sigterm_handler(signal, frame):
-    raise KeyboardInterrupt
-
-signal.signal(signal.SIGTERM, sigterm_handler)
 
 def grammar_mutate(b: bytes) -> bytes:
     # This function takes _ so it can have the same
@@ -385,6 +380,10 @@ def main(minimized_differentials: List[Tuple[bytes, float, int]], work_dir: Posi
                 else:
                     mutation_candidates.append(current_input)
 
+        if AUTO_TERMINATION_TIME > 0 and AUTO_TERMINATION_TIME < time.time() - start_time:
+            print(f"Auto-Termination after {AUTO_TERMINATION_TIME} seconds", file=sys.stderr)
+            raise KeyboardInterrupt
+
         # Minimize differentials
         with multiprocessing.Pool(processes=num_workers) as pool:
             minimized_inputs: Iterable[bytes] = list(
@@ -436,7 +435,7 @@ if __name__ == "__main__":
     print(f"\"RunTime\":\"{'{:.2f}'.format(time.time() - start_time)}\",")
     print("\"Differentials\":[")
     if len(final_results) != 0:
-        print(",\n".join(f"{{\"Hash\":\"{hash(repr(b[0]))}\", \"Time\":\"{'{:.2f}'.format(b[1])}\", \"Generation\":\"{b[2]}\"}}" for b in final_results))
+        print(",\n".join(f"{{\"File\":\"{idx}\", \"Time\":\"{'{:.2f}'.format(b[1])}\", \"Generation\":\"{b[2]}\"}}" for idx, b in enumerate(final_results)))
     else:
         print("No differentials found! Try increasing ROUGH_DESIRED_QUEUE_LEN.", file=sys.stderr)
     print("]")
@@ -445,6 +444,6 @@ if __name__ == "__main__":
     shutil.rmtree(run_dir)
 
     os.mkdir(RESULTS_DIR.joinpath(run_id))
-    for final_result in final_results:
-        with open(RESULTS_DIR.joinpath(run_id).joinpath(f"{hash(repr(final_result[0]))}"), "wb") as result_file:
+    for idx, final_result in enumerate(final_results):
+        with open(RESULTS_DIR.joinpath(run_id).joinpath(f"{idx}"), "wb") as result_file:
             result_file.write(final_result[0])
