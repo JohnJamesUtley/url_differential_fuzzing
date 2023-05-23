@@ -282,6 +282,7 @@ def trace_batch(work_dir: PosixPath, batch: List[bytes]) -> List[fingerprint_t]:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             env=tc.env,
+            cwd=str(work_dir.resolve()),  # because afl makes temp files
         )
         procs.append(proc)
 
