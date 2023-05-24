@@ -44,6 +44,7 @@ from config import (
     RESULTS_DIR,
     USE_GRAMMAR_MUTATIONS,
     AUTO_TERMINATION_TIME,
+    REPLACEMENT_BYTES,
 )
 
 if USE_GRAMMAR_MUTATIONS:
@@ -167,7 +168,7 @@ def make_command_line(
     return command_line
 
 
-def minimize_differential(bug_inducing_input: bytes) -> bytes:
+def standardize_differential(bug_inducing_input: bytes) -> bytes:
     orig_statuses, orig_parse_trees = run_targets(bug_inducing_input)
 
     needs_parse_tree_comparison: bool = len(set(orig_statuses)) == 1
@@ -201,6 +202,21 @@ def minimize_differential(bug_inducing_input: bytes) -> bytes:
                 i -= deletion_length
             else:
                 i -= 1
+
+    for substitution in REPLACEMENT_BYTES:
+        for i in range(len(result) - len(substitution) + 1):
+            substituted_form: bytes = result[:i] + substitution + result[i + len(substitution):]
+            new_statuses, new_parse_trees = run_targets(substituted_form)
+            if (
+                new_statuses == orig_statuses
+                and (
+                    list(itertools.starmap(compare_parse_trees, itertools.combinations(new_parse_trees, 2)))
+                    if needs_parse_tree_comparison
+                    else [(True,)]
+                )
+                == orig_parse_tree_comparisons
+            ):
+                result = substituted_form
 
     return result
 
@@ -402,7 +418,7 @@ def main(minimized_differentials: List[Tuple[bytes, float, int]], work_dir: Posi
         with multiprocessing.Pool(processes=num_workers) as pool:
             minimized_inputs: Iterable[bytes] = list(
                 tqdm.tqdm(
-                    pool.imap(minimize_differential, differentials),
+                    pool.imap(standardize_differential, differentials),
                     desc="Minimizing differentials...",
                     total=len(differentials),
                 )

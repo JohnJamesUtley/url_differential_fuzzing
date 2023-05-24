@@ -41,9 +41,13 @@ DIFFERENTIATE_NONZERO_EXIT_STATUSES: bool = False
 # Roughly how many processes to allow in a generation (within a factor of 2)
 ROUGH_DESIRED_QUEUE_LEN: int = 1000
 
-# The number of bytes deleted at a time in the minimization loop
+# The number of bytes deleted at a time in the standardization loop
 # The default choice was selected because of UTF-8.
 DELETION_LENGTHS: List[int] = [4, 3, 2, 1]
+
+# The bytes to attempt to substitute into the input in the standardization loop
+# These will be replaced in the order of the list
+REPLACEMENT_BYTES: List[bytes] = [b'a', b'0']
 
 
 # This is the parse tree class for your programs' output.
@@ -114,15 +118,15 @@ TARGET_CONFIGS: List[TargetConfig] = [
     #     name="boost_url",
     #     executable=PosixPath("./targets/boost_url/boost_url_target"),
     # ),
-    # TargetConfig(
-    #     name="curl",
-    #     executable=PosixPath("./targets/curl/curl_target"),
-    # ),
     TargetConfig(
-        name="furl",
-        executable=PosixPath("./targets/furl/furl_target"),
-        needs_python_afl=True,
+        name="curl",
+        executable=PosixPath("./targets/curl/curl_target"),
     ),
+    # TargetConfig(
+    #     name="furl",
+    #     executable=PosixPath("./targets/furl/furl_target"),
+    #     needs_python_afl=True,
+    # ),
     # TargetConfig(
     #     name="hyperlink",
     #     executable=PosixPath("./targets/hyperlink/hyperlink_target"),
@@ -132,11 +136,11 @@ TARGET_CONFIGS: List[TargetConfig] = [
     #     name="libwget",
     #     executable=PosixPath("./targets/libwget/libwget_target"),
     # ),
-    TargetConfig(
-        name="rfc3986",
-        executable=PosixPath("./targets/rfc3986/rfc3986_target"),
-        needs_python_afl=True,
-    ),
+    # TargetConfig(
+    #     name="rfc3986",
+    #     executable=PosixPath("./targets/rfc3986/rfc3986_target"),
+    #     needs_python_afl=True,
+    # ),
     TargetConfig(
         name="urllib",
         executable=PosixPath("./targets/urllib/urllib_target"),
