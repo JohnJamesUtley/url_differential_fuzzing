@@ -166,6 +166,13 @@ def make_command_line(
 
     return command_line
 
+def get_deletion_zones(given_bytes: bytes) -> List[Tuple[int, int]]:
+    deletion_zones = []
+    for deletion_length in DELETION_LENGTHS:
+        for offset in range(deletion_length):
+            for i in (x for x in range(len(given_bytes)) if (x - offset) % deletion_length == 0):
+                deletion_zones.append((i, i + deletion_length))
+    return deletion_zones
 
 def minimize_differential(bug_inducing_input: bytes) -> bytes:
     orig_statuses, orig_parse_trees = run_targets(bug_inducing_input)
@@ -180,13 +187,9 @@ def minimize_differential(bug_inducing_input: bytes) -> bytes:
 
     result: bytes = bug_inducing_input
 
-    for deletion_length in DELETION_LENGTHS:
-        i: int = len(result) - deletion_length
-        while i >= 0:
-            reduced_form: bytes = result[:i] + result[i + deletion_length :]
-            if reduced_form == b"":
-                i -= 1
-                continue
+    for deletion_zone in get_deletion_zones(result):
+        while(len(result) > deletion_zone[0]): # While deletion zone is still in area
+            reduced_form: bytes = result[:deletion_zone[0]] + result[deletion_zone[1]:]
             new_statuses, new_parse_trees = run_targets(reduced_form)
             if (
                 new_statuses == orig_statuses
@@ -198,9 +201,8 @@ def minimize_differential(bug_inducing_input: bytes) -> bytes:
                 == orig_parse_tree_comparisons
             ):
                 result = reduced_form
-                i -= deletion_length
             else:
-                i -= 1
+                break
 
     return result
 
