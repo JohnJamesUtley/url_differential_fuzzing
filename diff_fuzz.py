@@ -87,7 +87,9 @@ def grammar_duplicate(b: bytes) -> bytes:
     # This has a chance of being wrong, but that's okay
     slice_index: int = m.string.index(orig_rule_match)
 
-    return bytes(m.string[:slice_index] + orig_rule_match + m.string[slice_index:])
+    multiplication: int = 2 ** random.randint(1,10)
+
+    return bytes(m.string[:slice_index] + b''.join(orig_rule_match for _ in range(multiplication)) + m.string[slice_index + len(orig_rule_match):])
 
 
 def byte_change(b: bytes) -> bytes:
