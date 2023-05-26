@@ -1,2 +1,39 @@
+
 Bugs found
+
 ---------------------------
+
+RFC3986
+Title: ParseResult.fromString accepts ports that aren't preceded by a ':' character
+GH Issue: https://github.com/python-hyper/rfc3986/issues/102
+GH PR: https://github.com/python-hyper/rfc3986/pull/103
+
+Status: Merged
+
+---------------------------
+
+RFC3986
+Title: Parsing of fragments through ParseResult.fromString can be cut short by a newline character
+GH Issue: https://github.com/python-hyper/rfc3986/issues/99
+GH PR: https://github.com/python-hyper/rfc3986/pull/100
+
+Status: Merged
+
+---------------------------
+
+CPython
+Title: urlparse incorrectly retrieves IPv4 and regular name hosts from inside of brackets
+GH Issue: https://github.com/python/cpython/issues/103848
+GH PR: https://github.com/python/cpython/pull/103849
+
+Status: Merged
+
+---------------------------
+
+Furl
+Title: Fixed Scheme validation to reject schemes with non-alphanumeric characters
+GH Issue: N/A
+GH PR: https://github.com/gruns/furl/pull/171
+
+Status: Open
+
