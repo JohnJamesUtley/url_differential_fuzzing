@@ -103,43 +103,11 @@ class TargetConfig:
 # Configuration for each fuzzing target
 TARGET_CONFIGS: List[TargetConfig] = [
     TargetConfig(
-<<<<<<< HEAD
-        executable=PosixPath("./targets/urllib_target.py"),
-        afl_needed="python",
-    ),
-    # TargetConfig(
-    #     executable=PosixPath("./targets/urllib3_target.py"),
-    #     afl_needed="python",
-    # ),
-    # TargetConfig(
-    #     executable=PosixPath("./targets/furl_target.py"),
-    #     afl_needed="python",
-    # ),
-    # TargetConfig(
-    #     executable=PosixPath("./targets/yarl_target.py"),
-    #     afl_needed="python",
-    # ),
-    # TargetConfig(
-    #     executable=PosixPath("./targets/rfc3986_target.py"),
-    #     afl_needed="python",
-    # ),
-    # TargetConfig(
-    #     executable=PosixPath("./targets/hyperlink_target.py"),
-    #     afl_needed="python",
-    # ),
-    # TargetConfig(
-    #     executable=PosixPath("./targets/curl/curl_target"),
-    # ),
-    # TargetConfig(
-    #     executable=PosixPath("./targets/libwget/libwget_target"),
-    # ),
-    # TargetConfig(
-    #     executable=PosixPath("./targets/boost_url/boost_url_target"),
-    # ),
-    TargetConfig(
+        name="uri_ruby",
         executable=PosixPath("./targets/uri_ruby_target.rb"),
         afl_needed="ruby",
-=======
+    ),
+    TargetConfig(
         name="ada",
         executable=PosixPath("./targets/ada/ada_target"),
     ),
@@ -154,12 +122,12 @@ TARGET_CONFIGS: List[TargetConfig] = [
     TargetConfig(
         name="furl",
         executable=PosixPath("./targets/furl/furl_target"),
-        needs_python_afl=True,
+        afl_needed="python",
     ),
     TargetConfig(
         name="hyperlink",
         executable=PosixPath("./targets/hyperlink/hyperlink_target"),
-        needs_python_afl=True,
+        afl_needed="python",
     ),
     TargetConfig(
         name="libwget",
@@ -168,22 +136,21 @@ TARGET_CONFIGS: List[TargetConfig] = [
     TargetConfig(
         name="rfc3986",
         executable=PosixPath("./targets/rfc3986/rfc3986_target"),
-        needs_python_afl=True,
+        afl_needed="python",
     ),
     TargetConfig(
         name="urllib",
         executable=PosixPath("./targets/urllib/urllib_target"),
-        needs_python_afl=True,
+        afl_needed="python",
     ),
     TargetConfig(
         name="urllib3",
         executable=PosixPath("./targets/urllib3/urllib3_target"),
-        needs_python_afl=True,
+        afl_needed="python",
     ),
     TargetConfig(
         name="yarl",
         executable=PosixPath("./targets/yarl/yarl_target"),
-        needs_python_afl=True,
->>>>>>> main
+        afl_needed="python",
     ),
 ]
