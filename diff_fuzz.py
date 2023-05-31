@@ -50,12 +50,15 @@ if USE_GRAMMAR_MUTATIONS:
         from grammar import generate_random_matching_input, grammar_re, grammar_dict  # type: ignore
     except ModuleNotFoundError:
         print(
-            "`grammar.py` not found. Either make one or set USE_GRAMMAR_MUTATIONS to False", file=sys.stderr
+            "`grammar.py` not found. Either make one or set USE_GRAMMAR_MUTATIONS to False",
+            file=sys.stderr,
         )
         sys.exit(1)
 
 assert SEED_DIR.is_dir()
-SEED_INPUTS: List[PosixPath] = list(map(lambda s: SEED_DIR.joinpath(PosixPath(s)), os.listdir(SEED_DIR)))
+SEED_INPUTS: List[PosixPath] = list(
+    map(lambda s: SEED_DIR.joinpath(PosixPath(s)), os.listdir(SEED_DIR))
+)
 
 assert RESULTS_DIR.is_dir()
 
@@ -70,7 +73,11 @@ def grammar_regenerate(b: bytes) -> bytes:
     m: re.Match[bytes] | None = re.match(grammar_re, b)
     assert m is not None
     rule_name: str = random.choice(
-        [rule_name for rule_name, rule_match in m.groupdict().items() if rule_match is not None]
+        [
+            rule_name
+            for rule_name, rule_match in m.groupdict().items()
+            if rule_match is not None
+        ]
     )
     new_rule_match: bytes = generate_random_matching_input(grammar_dict[rule_name])
     start, end = m.span(rule_name)
@@ -83,7 +90,11 @@ def grammar_duplicate(b: bytes) -> bytes:
     m: re.Match[bytes] | None = re.match(grammar_re, b)
     assert m is not None
     rule_name: str = random.choice(
-        [rule_name for rule_name, rule_match in m.groupdict().items() if rule_match is not None]
+        [
+            rule_name
+            for rule_name, rule_match in m.groupdict().items()
+            if rule_match is not None
+        ]
     )
     start, end = m.span(rule_name)
     new_rule_match: bytes = m[rule_name]
@@ -150,11 +161,19 @@ def make_command_line(
         command_line.append("-q")  # Don't care about traced program stdout
         command_line.append("-e")  # Only care about edge coverage; ignore hit counts
         if input_dir is not None and output_dir is not None:
-            command_line += ["-i", str(input_dir.resolve()), "-o", str(output_dir.resolve())]
+            command_line += [
+                "-i",
+                str(input_dir.resolve()),
+                "-o",
+                str(output_dir.resolve()),
+            ]
         elif input_dir is None and output_dir is None:
             command_line += ["-o", "/dev/stdout"]
         else:
-            print("Either both or neither of input_dir, output_dir can be None.", file=sys.stderr)
+            print(
+                "Either both or neither of input_dir, output_dir can be None.",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         command_line += ["-t", str(TIMEOUT_TIME)]
@@ -172,7 +191,11 @@ def minimize_differential(bug_inducing_input: bytes) -> bytes:
     needs_parse_tree_comparison: bool = len(set(orig_statuses)) == 1
 
     orig_parse_tree_comparisons: List[Tuple[bool, ...]] = (
-        list(itertools.starmap(compare_parse_trees, itertools.combinations(orig_parse_trees, 2)))
+        list(
+            itertools.starmap(
+                compare_parse_trees, itertools.combinations(orig_parse_trees, 2)
+            )
+        )
         if needs_parse_tree_comparison
         else [(True,)]
     )
@@ -181,31 +204,42 @@ def minimize_differential(bug_inducing_input: bytes) -> bytes:
 
     for deletion_length in DELETION_LENGTHS:
         i: int = len(result) - deletion_length
-        while i >= 0:
-            reduced_form: bytes = result[:i] + result[i + deletion_length :]
-            if reduced_form == b"":
-                i -= 1
-                continue
-            new_statuses, new_parse_trees = run_targets(reduced_form)
-            if (
-                new_statuses == orig_statuses
-                and (
-                    list(itertools.starmap(compare_parse_trees, itertools.combinations(new_parse_trees, 2)))
-                    if needs_parse_tree_comparison
-                    else [(True,)]
-                )
-                == orig_parse_tree_comparisons
-            ):
-                result = reduced_form
-                i -= deletion_length
-            else:
-                i -= 1
+        deletion_success: bool = True
+        while deletion_success:
+            deletion_success = False
+            while i >= 0:
+                reduced_form: bytes = result[:i] + result[i + deletion_length :]
+                if reduced_form == b"":
+                    i -= 1
+                    continue
+                new_statuses, new_parse_trees = run_targets(reduced_form)
+                if (
+                    new_statuses == orig_statuses
+                    and (
+                        list(
+                            itertools.starmap(
+                                compare_parse_trees,
+                                itertools.combinations(new_parse_trees, 2),
+                            )
+                        )
+                        if needs_parse_tree_comparison
+                        else [(True,)]
+                    )
+                    == orig_parse_tree_comparisons
+                ):
+                    result = reduced_form
+                    i -= deletion_length
+                    deletion_success = True
+                else:
+                    i -= 1
 
     return result
 
 
 @functools.lru_cache
-def run_targets(the_input: bytes) -> Tuple[Tuple[int, ...], Tuple[ParseTree | None, ...]]:
+def run_targets(
+    the_input: bytes,
+) -> Tuple[Tuple[int, ...], Tuple[ParseTree | None, ...]]:
     """
     This function needs a better name.
     This runs the parsers on an input, and returns a (exit_statuses, parse_trees) pair.
@@ -219,7 +253,9 @@ def run_targets(the_input: bytes) -> Tuple[Tuple[int, ...], Tuple[ParseTree | No
         proc: subprocess.Popen = subprocess.Popen(
             command_line,
             stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE if DETECT_OUTPUT_DIFFERENTIALS else subprocess.DEVNULL,
+            stdout=subprocess.PIPE
+            if DETECT_OUTPUT_DIFFERENTIALS
+            else subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             env=tc.env,
         )
@@ -240,7 +276,12 @@ def run_targets(the_input: bytes) -> Tuple[Tuple[int, ...], Tuple[ParseTree | No
 
     # Extract the parse trees
     parse_trees: Tuple[ParseTree | None, ...] = tuple(
-        ParseTree(**{k: base64.b64decode(v) for k, v in json.loads(proc.stdout.read()).items()})
+        ParseTree(
+            **{
+                k: base64.b64decode(v)
+                for k, v in json.loads(proc.stdout.read()).items()
+            }
+        )
         if proc.stdout is not None and status == 0
         else None
         for proc, status in zip(procs, statuses)
@@ -268,7 +309,9 @@ def trace_batch(work_dir: PosixPath, batch: List[bytes]) -> List[fingerprint_t]:
         with open(input_dir.joinpath(str(hash(b))), "wb") as f:
             f.write(b)
 
-    traced_targets: List[TargetConfig] = list(filter(lambda tc: tc.needs_tracing, TARGET_CONFIGS))
+    traced_targets: List[TargetConfig] = list(
+        filter(lambda tc: tc.needs_tracing, TARGET_CONFIGS)
+    )
 
     # Run the batch through each configured target.
     for tc in traced_targets:
@@ -293,7 +336,9 @@ def trace_batch(work_dir: PosixPath, batch: List[bytes]) -> List[fingerprint_t]:
     fingerprints: List[fingerprint_t] = []
     for b in batch:
         fingerprint: List[FrozenSet[int]] = []
-        for trace_dir in map(lambda tc: batch_dir.joinpath(f"traces-{tc.name}"), traced_targets):
+        for trace_dir in map(
+            lambda tc: batch_dir.joinpath(f"traces-{tc.name}"), traced_targets
+        ):
             with open(trace_dir.joinpath(str(hash(b))), "rb") as f:
                 fingerprint.append(parse_tracer_output(f.read()))
         fingerprints.append(tuple(fingerprint))
@@ -305,7 +350,11 @@ def trace_batch(work_dir: PosixPath, batch: List[bytes]) -> List[fingerprint_t]:
 def split_input_queue(l: List[bytes], num_chunks: int) -> List[List[bytes]]:
     chunk_size, remainder = divmod(len(l), num_chunks)
     return [
-        l[i * chunk_size + min(i, remainder) : (i + 1) * chunk_size + min(i + 1, remainder)]
+        l[
+            i * chunk_size
+            + min(i, remainder) : (i + 1) * chunk_size
+            + min(i + 1, remainder)
+        ]
         for i in range(num_chunks)
     ]
 
@@ -404,13 +453,17 @@ def main(minimized_differentials: List[bytes], work_dir: PosixPath) -> None:
                 )
             )
         for minimized_input in minimized_inputs:
-            minimized_fingerprint: fingerprint_t = trace_batch(work_dir, [minimized_input])[0]
+            minimized_fingerprint: fingerprint_t = trace_batch(
+                work_dir, [minimized_input]
+            )[0]
             if minimized_fingerprint not in minimized_fingerprints:
                 minimized_differentials.append(minimized_input)
                 minimized_fingerprints.add(minimized_fingerprint)
 
         input_queue.clear()
-        while len(mutation_candidates) != 0 and len(input_queue) < ROUGH_DESIRED_QUEUE_LEN:
+        while (
+            len(mutation_candidates) != 0 and len(input_queue) < ROUGH_DESIRED_QUEUE_LEN
+        ):
             input_queue += list(map(mutate, mutation_candidates))
 
         print(
@@ -441,11 +494,16 @@ if __name__ == "__main__":
         print("Differentials:", file=sys.stderr)
         print("\n".join(repr(b) for b in _final_results))
     else:
-        print("No differentials found! Try increasing ROUGH_DESIRED_QUEUE_LEN.", file=sys.stderr)
+        print(
+            "No differentials found! Try increasing ROUGH_DESIRED_QUEUE_LEN.",
+            file=sys.stderr,
+        )
 
     os.mkdir(RESULTS_DIR.joinpath(_run_id))
     for ctr, final_result in enumerate(_final_results):
-        with open(RESULTS_DIR.joinpath(_run_id).joinpath(f"differential_{ctr}"), "wb") as result_file:
+        with open(
+            RESULTS_DIR.joinpath(_run_id).joinpath(f"differential_{ctr}"), "wb"
+        ) as result_file:
             result_file.write(final_result)
 
     shutil.rmtree(_work_dir)
